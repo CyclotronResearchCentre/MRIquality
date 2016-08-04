@@ -112,7 +112,7 @@ if ~isempty(noisefiles)
     Ni.mat     = VIM(1).mat;
     Ni.mat0    = VIM(1).mat;
     Ni.descrip = 'SNR volume based on noRF noise estimation';
-    Ni.dat     = file_array(fullfile(PARAMS.outdir,SNR.snrmap_noRF), dm, dt, 0, 1, 0);
+    Ni.dat     = file_array(fullfile(PARAMS.outdir,SNR.snrmap), dm, dt, 0, 1, 0);
     create(Ni);
     Ni.dat(:,:,:) = mean(YIM,4)/SNR.sigma_noRF;
 end

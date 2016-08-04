@@ -133,15 +133,15 @@ if size(Ninim,1)>1
     % REALIGN
     flags1 = struct('quality',1,'fwhm',5,'sep',4,'interp',2,'wrap',[0 0 0],'rtm',0,'PW','','graphics',1,'lkp',2);
     [rNinim, Params] = spm_realign_fbirn(Ninim,flags1);
-    [p,n,e] = fileparts(rNinim(1).fname);
-    SOURCE = fullfile(p, ['mean' n,e]);
-    RES.SPAT.meanim = [PARAMS.resfnam '_MEAN.nii'];
-    copyfile(SOURCE,fullfile(DIRS.output, RES.SPAT.meanim),'f')
     % RESLICE
     flags2 = struct('interp',4,'mask',1,'mean',1,'which',2,'wrap',[0 0 0]');
     spm_reslice(rNinim,flags2);
     RES.SPAT.y_motion = Params(:,2); % spatial drift in mm
     RES.SPAT.max_drift = max(RES.SPAT.y_motion)-min(RES.SPAT.y_motion); % maximal drift in mm
+    [p,n,e] = fileparts(rNinim(1).fname);
+    SOURCE = fullfile(p, ['mean' n,e]);
+    RES.SPAT.meanim = [PARAMS.resfnam '_MEAN.nii'];
+    copyfile(SOURCE,fullfile(DIRS.output, RES.SPAT.meanim),'f')
     disp(RES.SPAT);
     % RETRIEVE FILE NAMES
     clear rNinim
@@ -206,7 +206,7 @@ save(fullfile(DIRS.output, [PARAMS.resfnam '.mat']),'RES','PARAMS');
 delete('*.nii');
 cd ..;
 tar([DIRS.current(1:end-1) '.tar.gz'],DIRS.current);
-rmdir(DIRS.currentdir,'s');
+rmdir(DIRS.current,'s');
 
 cd(DIRS.matlab);
 rmpath(DIRS.matlab);
