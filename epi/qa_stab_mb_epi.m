@@ -142,6 +142,7 @@ if size(Ninim,1)>1
     spm_reslice(rNinim,flags2);
     RES.SPAT.y_motion = Params(:,2); % spatial drift in mm
     RES.SPAT.max_drift = max(RES.SPAT.y_motion)-min(RES.SPAT.y_motion); % maximal drift in mm
+    disp(RES.SPAT);
     % RETRIEVE FILE NAMES
     clear rNinim
     for i=1:size(Ninim,1)
@@ -204,9 +205,9 @@ save(fullfile(DIRS.output, [PARAMS.resfnam '.mat']),'RES','PARAMS');
 % - delete the directory
 delete('*.nii');
 cd ..;
-tar([QA.currentdir(1:end-1) '.tar.gz'],QA.currentdir);
-rmdir(QA.currentdir,'s');
+tar([DIRS.current(1:end-1) '.tar.gz'],DIRS.current);
+rmdir(DIRS.currentdir,'s');
 
-cd(QA.matlabdir);
-rmpath(QA.matlabdir);
+cd(DIRS.matlab);
+rmpath(DIRS.matlab);
 clear all;
