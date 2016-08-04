@@ -11,10 +11,12 @@ function qa_stab_mb_epi
 
 % loads default paths
 % DIRS.dicom = ['W:' filesep]; % directory where to find the input dicom files
-DIRS.dicom = 'D:\home\data\20160801_qa_mb_data_upgrade_R2014\ima';
+DIRS.dicom = 'D:\home\logistic\mri\qa';
 DIRS.matlab = fileparts(mfilename('fullpath')); % directory containing the present script
-DIRS.output = fullfile(fileparts(DIRS.matlab),'qa_stability', filesep);
-DIRS.data = fullfile(fileparts(DIRS.matlab),'qa_data', filesep);
+%DIRS.output = fullfile(fileparts(DIRS.matlab),'qa_stability', filesep);
+DIRS.output = fullfile('D:\home','logistic','mri','qa','qa_stability', filesep);
+%DIRS.data = fullfile(fileparts(DIRS.matlab),'qa_data', filesep);
+DIRS.data = fullfile('D:\home','logistic','mri','qa','qa_data', filesep);
 PARAMS.outdir = DIRS.output;
 addpath(DIRS.matlab);
 
@@ -29,7 +31,7 @@ PARAMS.tag = input('Enter tag if several runs today: ','s');
 
 % retrieve values from headers
 hdrim = spm_dicom_headers(Ptmpim);
-hdrno = spm_dicom_headers(Ptmpno);
+if ~isempty(Ptmpno);hdrno = spm_dicom_headers(Ptmpno);end
 
 % define and create temporary working directory
 PARAMS.resfnam = [datestr(hdrim{1}.StudyDate, 'yyyymmdd') '_stud' deblank(hdrim{1}.StudyID) num2str(hdrim{1}.SeriesNumber,'_ser%0.2d')];
@@ -45,18 +47,24 @@ for cf = 1:size(Ptmpim,1)
     copyfile(Ptmpim(cf,:),Pinim(cf,:));
 end
 Pinno = [];
-for cf = 1:size(Ptmpno,1)
-    [~,NAME,EXT] = fileparts(Ptmpno(cf,:));
-    Pinno = [Pinno; fullfile(DIRS.current, [NAME EXT])];
-    copyfile(Ptmpno(cf,:),Pinno(cf,:));
+if ~isempty(Ptmpno)
+    for cf = 1:size(Ptmpno,1)
+        [~,NAME,EXT] = fileparts(Ptmpno(cf,:));
+        Pinno = [Pinno; fullfile(DIRS.current, [NAME EXT])];
+        copyfile(Ptmpno(cf,:),Pinno(cf,:));
+    end
 end
 cd(DIRS.current);
 
 % convert DICOM files into nii+ (extended nifti)
 Ninim = hMRI_dicom_convert(hdrim,'all','flat','nii+'); 
-Ninno = hMRI_dicom_convert(hdrno,'all','flat','nii+');
 Ninim = char(Ninim.files); % convert into string array
-Ninno = char(Ninno.files);
+% Ninim = spm_select(Inf, '^*\.nii$','select QA nii images (time series discarding first few images)',{},DIRS.current);
+Ninno = [];
+if ~isempty(Ptmpno)
+    Ninno = hMRI_dicom_convert(hdrno,'all','flat','nii+');
+    Ninno = char(Ninno.files);
+end
 
 % clear a few variables
 clear Ptmpim Ptmpno Pinim Pinno;
@@ -108,9 +116,13 @@ fprintf(fid,'%s - %s\n',PARAMS.comment, PARAMS.date);
 fprintf(fid,'\nACQUISITION PARAMETERS\n');
 fprintf(fid,'    Coils: %s (%d channels)\n', PARAMS.coils, PARAMS.ncha);
 fprintf(fid,'    Acceleration: MB%d + PAT%d\n', PARAMS.MB, PARAMS.PAT);
-fprintf(fid,'    TR = %5.0f ms, matrix = %dx%d\n', PARAMS.TR, PARAMS.PE_lin, PARAMS.RO_col);
-fprintf(fid,'    B0 = %5.4f T, Freq = %9.6f MHz, RefAmpl = %5.2f V\n', PARAMS.field_strength, PARAMS.rf_freq/1000000, PARAMS.ref_ampl);
-fprintf(fid,'    Signal plane = %d, noise plane = %d\n', PARAMS.signalplane, PARAMS.noiseplane);
+fprintf(fid,'    TR = %5.0f ms\n', PARAMS.TR);
+fprintf(fid,'    Matrix = %dx%d\n', PARAMS.PE_lin, PARAMS.RO_col);
+fprintf(fid,'    B0 = %5.4f T\n', PARAMS.field_strength);
+fprintf(fid,'    Frequency = %9.6f MHz\n', PARAMS.rf_freq/1000000);
+fprintf(fid,'    RefAmpl = %6.3f V\n', PARAMS.ref_ampl);
+fprintf(fid,'    Signal plane = %d\n', PARAMS.signalplane);
+fprintf(fid,'    Noise plane = %d\n', PARAMS.noiseplane);
 fclose(fid);
 
 % realign and reslice in the PE(y) direction to account for B0 drifts if
@@ -121,6 +133,10 @@ if size(Ninim,1)>1
     % REALIGN
     flags1 = struct('quality',1,'fwhm',5,'sep',4,'interp',2,'wrap',[0 0 0],'rtm',0,'PW','','graphics',1,'lkp',2);
     [rNinim, Params] = spm_realign_fbirn(Ninim,flags1);
+    [p,n,e] = fileparts(rNinim(1).fname);
+    SOURCE = fullfile(p, ['mean' n,e]);
+    RES.SPAT.meanim = [PARAMS.resfnam '_MEAN.nii'];
+    copyfile(SOURCE,fullfile(DIRS.output, RES.SPAT.meanim),'f')
     % RESLICE
     flags2 = struct('interp',4,'mask',1,'mean',1,'which',2,'wrap',[0 0 0]');
     spm_reslice(rNinim,flags2);
@@ -134,7 +150,7 @@ if size(Ninim,1)>1
     end
     fid = fopen(fullfile(DIRS.output, [PARAMS.resfnam '.txt']),'a');
     fprintf(fid,'\nSPATIAL PROCESSING\n');
-    fprintf(fid,'    Maximum spatial drift in mm: %4.1f mm\n', RES.SPAT.max_drift);
+    fprintf(fid,'    Maximum spatial drift in mm: %5.4f mm\n', RES.SPAT.max_drift);
     fclose(fid);
 end
 
@@ -186,11 +202,11 @@ save(fullfile(DIRS.output, [PARAMS.resfnam '.mat']),'RES','PARAMS');
 % - delete all nifti files
 % - tar.gzip the current data directory with dicom data only
 % - delete the directory
-% % % % delete('*.nii');
-% % % % cd ..;
-% % % % tar([QA.currentdir(1:end-1) '.tar.gz'],QA.currentdir);
-% % % % rmdir(QA.currentdir,'s');
-% % % % 
-% % % % cd(QA.matlabdir);
-% % % % rmpath(QA.matlabdir);
-% % % % clear all;
+delete('*.nii');
+cd ..;
+tar([QA.currentdir(1:end-1) '.tar.gz'],QA.currentdir);
+rmdir(QA.currentdir,'s');
+
+cd(QA.matlabdir);
+rmpath(QA.matlabdir);
+clear all;

@@ -79,14 +79,14 @@ for i=1:dim(1)
 end
 sigt_im = std(Ydetrend,0,4);
 tsnr_im = (mean_im./sigt_im).*mask;
-QA.tsnrmap   = [PARAMS.resfnam '_tsnrmap.nii'];
+QA.tsnrmap   = [PARAMS.resfnam '_tSNR.nii'];
 dm         = VIM(1).dim;
 dt         = [spm_type('float32'),spm_platform('bigend')];
 Ni         = nifti;
 Ni.mat     = VIM(1).mat;
 Ni.mat0    = VIM(1).mat;
 Ni.descrip = 'tSNR volume';
-Ni.dat     = file_array(fullfile(PARAMS.outdir,[PARAMS.resfnam '_tSNR.nii']), dm, dt, 0, 1, 0);
+Ni.dat     = file_array(fullfile(PARAMS.outdir,QA.tsnrmap), dm, dt, 0, 1, 0);
 create(Ni);
 Ni.dat(:,:,:) = tsnr_im;
 
@@ -168,10 +168,11 @@ fid = fopen(fullfile(PARAMS.outdir, [PARAMS.resfnam '.txt']),'a');
 fprintf(fid,'\nSTABILITY RESULTS\n');
 fprintf(fid,'    SD map: %s\n', QA.sdmap);
 fprintf(fid,'    tSNR map: %s\n', QA.tsnrmap);
-fprintf(fid,'    Intensity: drift = %6.5f | fluctuation = %6.5f (percent)\n', QA.perc_drift, QA.perc_fluct);
+fprintf(fid,'    Intensity drift = %6.5f (percent)\n', QA.perc_drift);
+fprintf(fid,'    Intensity fluctuation = %6.5f (percent)\n', QA.perc_fluct);
 fprintf(fid,'    tSNR in central ROI: %5.2f\n', QA.SFNR_voxel);
 fprintf(fid,'    RDC = %5.2f\n', QA.rdc);
-fprintf(fid,'    Estimated phantom diameter: %4.1f x %4.1f mm2\n', QA.x_diam, QA.y_diam);
+fprintf(fid,'    Estimated phantom diameter: %4.2f x %4.2f mm2\n', QA.x_diam, QA.y_diam);
 fclose(fid);
 
 

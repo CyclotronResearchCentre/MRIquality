@@ -17,7 +17,7 @@ gca_gap_v = 2;
 
 % define some hardcoded parameters:
 N_max = 21; % maximal length of rectangular ROI edge
-sect = [PARAMS.PE_lin/2 PARAMS.RO_col/2 PARAMS.nslices/2]; 
+sect = round([PARAMS.PE_lin/2 PARAMS.RO_col/2 PARAMS.nslices/2]); 
 
 % plot motion in the y-direction (PE)
 subplot(3,3,1);
@@ -32,32 +32,47 @@ set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 
 % display the SNR map 
 subplot(3,3,2);
-gposx = 2;
+gposx = 1.92;
 gposy = 1;
 gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
-A = eb_orthviews(fullfile(PARAMS.outdir,RES.SNR.snrmap_noRF), sect(1), sect(2), sect(3));
+if isfield(RES.SNR, 'snrmap')
+    A = eb_orthviews(fullfile(PARAMS.outdir,RES.SNR.snrmap), sect(1), sect(2), sect(3));
+    titl = 'SNR map';
+else
+    A = eb_orthviews(fullfile(PARAMS.outdir,RES.SPAT.meanim), sect(1), sect(2), sect(3));
+    titl = 'Mean image';
+end
 imshow(A,[]);
-set(gca,'units','centimeters','position',gcapos);
 colormap('jet');
-colorbar('off');
 colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
-title('SNR map','fontname',def_fontname,'fontsize',title_fontsize);
+set(gca,'units','centimeters','position',gcapos);
+title(titl,'fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 tmpx = get(gca,'XLim');
 tmpy = get(gca,'YLim');
-text(tmpx(2)/2,-tmpy(2)/4,[PARAMS.date ' (' PARAMS.comment ')'],'fontname',def_fontname,'fontsize',12,'horizontalalignment','center');
+text(tmpx(2)/2,-tmpy(2)/3,[PARAMS.date ' (' PARAMS.comment ')'],'fontname',def_fontname,'fontsize',12,'horizontalalignment','center');
 
 % display the tSNR map 
 subplot(3,3,3);
-gposx = 3;
+gposx = 2.98;
 gposy = 1;
+gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
+A = eb_orthviews(fullfile(PARAMS.outdir,RES.FBIRN.tsnrmap), sect(1), sect(2), sect(3));
+imshow(A,[]);
+colormap('jet');
+colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
+set(gca,'units','centimeters','position',gcapos);
+title('tSNR map','fontname',def_fontname,'fontsize',title_fontsize);
+set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 
 % display SD over all volumes
 subplot(3,3,4);
 gposx = 1;
 gposy = 2;
-colormap(gray);
-montage(reshape(stdvol,[V1.dim(1),V1.dim(2),1,V1.dim(3)]));
+% colormap(gray);
+stdvol = spm_read_vols(spm_vol(fullfile(PARAMS.outdir,RES.FBIRN.sdmap)));
+dim = size(stdvol);
+montage(reshape(stdvol,[dim(1),dim(2),1,dim(3)]));
 caxis([min(stdvol(:)), max(stdvol(:))*0.75]);
 title('SD of time series (w/o detrending)','fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'units','centimeters','position',[gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height]);
@@ -97,7 +112,7 @@ xlabel('Frequency (Hz)','fontname',def_fontname,'fontsize',label_fontsize);
 ylabel('Magnitude (relative to mean signal)','fontname',def_fontname,'fontsize',label_fontsize);
 set(gca,'units','centimeters','position',[gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width*2 gca_height]);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
-set(gca,'XLim',[min(QA.fcoord) max(QA.fcoord)]);
+set(gca,'XLim',[min(RES.FBIRN.fcoord) max(RES.FBIRN.fcoord)]);
 
 % Weiskoff test and RDC value
 subplot(3,3,9);
@@ -114,7 +129,7 @@ set(gca,'XLim',[1 N_max]);
 
 % save summary figure
 set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng',fullfile(QA.outputdir, [PARAMS.resfnam '_SUMMARY.png']));
+print(gcf,'-dpng',fullfile(PARAMS.outdir, [PARAMS.resfnam '.png']));
 %saveas(gcf,fullfile(QA.outputdir, [PARAMS.resfnam '.fig']));
 
 

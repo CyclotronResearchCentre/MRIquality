@@ -44,8 +44,10 @@ YIM = spm_read_vols(VIM);
 dim = VIM(1).dim;
 num_vols = size(YIM,4);
 % load noise images
-VNO = spm_vol(noisefiles);
-YNO = spm_read_vols(VNO);
+if ~isempty(noisefiles)
+    VNO = spm_vol(noisefiles);
+    YNO = spm_read_vols(VNO);
+end
 % data subsets
 noiseslicearray = squeeze(YIM(:,:,PARAMS.noiseplane,:)); % noise plane
 noiseroiarray = noiseslicearray(PARAMS.x_roi,PARAMS.y_roi,:); % ROI in the noise plane
@@ -101,7 +103,7 @@ if ~isempty(noisefiles)
     SNR.sigma_noRF = par3(1);
     SNR.nchaeff_noRF = par3(3);
     SNR.snr_noRF = signal/par3(1);
-    SNR.snrmap_noRF = [PARAMS.resfnam '_SNR_noRF.nii'];
+    SNR.snrmap = [PARAMS.resfnam '_SNR_noRF.nii'];
     
     % save SNR volume
     dm         = VIM(1).dim;
@@ -162,9 +164,11 @@ SNR.snr_DIETRICH2 = mean(tmp);
 
 % Write results in file
 fid = fopen(fullfile(PARAMS.outdir, [PARAMS.resfnam '.txt']),'a');
-fprintf(fid,'\nNOISE RESULTS IN ROI\n');
-fprintf(fid,'Central Chi distribution (%d channels, MB%d, PAT%d)\n', PARAMS.ncha, PARAMS.MB, PARAMS.PAT);
-fprintf(fid,'Parameters estimated: \n    sigma = %5.2f \n    A = %6.0f \n    Neff = %5.2f \n    Residuals = %4.3e\n', par3(1), par3(2), par3(3), fval3);
+if ~isempty(noisefiles);
+    fprintf(fid,'\nNOISE RESULTS IN ROI\n');
+    fprintf(fid,'Central Chi distribution (%d channels, MB%d, PAT%d)\n', PARAMS.ncha, PARAMS.MB, PARAMS.PAT);
+    fprintf(fid,'Parameters estimated: \n    sigma = %5.2f \n    A = %6.0f \n    Neff = %5.2f \n    Residuals = %4.3e\n', par3(1), par3(2), par3(3), fval3);
+end
 fprintf(fid,'\nSNR RESULTS\n');
 if ~isempty(noisefiles);fprintf(fid,'    noRF estimate:         %5.2f\n', SNR.snr_noRF);end
 fprintf(fid,'    DIETRICH1:             %5.2f\n', SNR.snr_DIETRICH1);
