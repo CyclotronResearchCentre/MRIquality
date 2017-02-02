@@ -59,6 +59,11 @@ signal = mean(signalroiarray(:));
 
 %% ESTIMATE NOISE AND SNR FROM noRF IMAGES
 if ~isempty(noisefiles)
+    % !!!! if scaling factor differs between noise images and proper
+    % images, we need to take it into account (this is
+    % noise_scfac/image_scfac):
+    scfac = 100;
+    
     noisy_vox = YNO(:);
     noisy_vox = noisy_vox(:);
     noisy_vox = noisy_vox(noisy_vox~=0); % to get rid of the bunch of zero values from edges of volume in Siemens images
@@ -89,9 +94,9 @@ if ~isempty(noisefiles)
     maxY = max(fit3);
     maxX = max(xplot);
     title(sprintf('Central Chi distribution (%d channels, MB%d, PAT%d)', PARAMS.ncha, PARAMS.MB, PARAMS.PAT));
-    text2plot = [sprintf('Parameters estimated: \n    sigma = %5.2f \n    A = %6.0f \n    Neff = %5.2f \n    Residuals = %4.3e', par3(1), par3(2), par3(3), fval3) ...
+    text2plot = [sprintf('Parameters estimated: \n    sigma = %5.2f \n    A = %6.0f \n    Neff = %5.2f \n    Residuals = %4.3e', par3(1)/scfac, par3(2), par3(3), fval3) ...
         sprintf('\n\nAverage signal in central ROI = %5.2f', signal) ...
-        sprintf('\n\nSNR = %5.2f', signal/par3(1))];
+        sprintf('\n\nSNR = %5.2f', signal/(par3(1)/scfac))];
     text(maxX*0.04,0.95*maxY,text2plot,'VerticalAlignment','top');
     legend('data','fit');
     
@@ -100,9 +105,9 @@ if ~isempty(noisefiles)
     print(gcf,'-dpng',fullfile(PARAMS.outdir,[PARAMS.resfnam '_NOISE_DISTRIB.png']));
     
     % save results in structure SNR
-    SNR.sigma_noRF = par3(1);
+    SNR.sigma_noRF = par3(1)/scfac;
     SNR.nchaeff_noRF = par3(3);
-    SNR.snr_noRF = signal/par3(1);
+    SNR.snr_noRF = signal/(par3(1)/scfac);
     SNR.snrmap = [PARAMS.resfnam '_SNR_noRF.nii'];
     
     % save SNR volume

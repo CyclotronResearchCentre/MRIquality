@@ -5,6 +5,7 @@ function qa_stab_mb_epi_display_results(RES, PARAMS)
 
 % define display default params
 figpos = [1 1 21 23]; 
+% figpos = [1 1 17 16]; 
 figure('units','centimeters','position',figpos,'color',[1 1 1]);
 unit_fontsize = 8;
 title_fontsize = 11;
@@ -14,6 +15,10 @@ gca_width = 5;
 gca_height = 5;
 gca_gap_h = 1.5;
 gca_gap_v = 2;
+% gca_width = 3.5;
+% gca_height = 3.5;
+% gca_gap_h = 1.7;
+% gca_gap_v = 1.5;
 
 % define some hardcoded parameters:
 N_max = 21; % maximal length of rectangular ROI edge
@@ -49,7 +54,7 @@ title(titl,'fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 tmpx = get(gca,'XLim');
 tmpy = get(gca,'YLim');
-text(tmpx(2)/2,-tmpy(2)/3,[PARAMS.date ' (' PARAMS.comment ')'],'fontname',def_fontname,'fontsize',12,'horizontalalignment','center');
+text(tmpx(2)/2,-tmpy(2)/2,[PARAMS.date ' (' PARAMS.comment ')'],'fontname',def_fontname,'fontsize',12,'horizontalalignment','center');
 
 % display the tSNR map 
 subplot(3,3,3);
