@@ -62,7 +62,7 @@ if ~isempty(noisefiles)
     % !!!! if scaling factor differs between noise images and proper
     % images, we need to take it into account (this is
     % noise_scfac/image_scfac):
-    scfac = 100;
+    scfac = 1;
     
     noisy_vox = YNO(:);
     noisy_vox = noisy_vox(:);

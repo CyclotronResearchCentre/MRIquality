@@ -12,11 +12,12 @@ function qa_stab_mb_epi
 % loads default paths
 % DIRS.dicom = ['W:' filesep]; % directory where to find the input dicom files
 % DIRS.dicom = 'D:\home\logistic\mri\qa';
-DIRS.dicom = 'D:\home\data\20170124_terra_erlangen';
+% DIRS.dicom = 'D:\home\data\20170124_terra_erlangen';
+DIRS.dicom = 'D:\home\data\20170419_phantom_mb';
 DIRS.matlab = fileparts(mfilename('fullpath')); % directory containing the present script
 % DIRS.output = fullfile(fileparts(DIRS.matlab),'qa_stability', filesep);
 % DIRS.output = fullfile('D:\home','logistic','mri','qa','qa_stability', filesep);
-DIRS.output = 'D:\home\data\20170124_terra_erlangen\results\stab';
+DIRS.output = 'D:\home\data\20170419_phantom_mb\stab';
 % DIRS.data = fullfile(fileparts(DIRS.matlab),'qa_data', filesep);
 % DIRS.data = fullfile('D:\home','logistic','mri','qa','qa_data', filesep);
 DIRS.data = DIRS.output;

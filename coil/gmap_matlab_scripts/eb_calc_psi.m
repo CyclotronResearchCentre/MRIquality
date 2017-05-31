@@ -1,7 +1,7 @@
 function psii = eb_calc_psi(noise_array)
 % calculate the noise matrix psi from a noise measurements
 % (acquisition without RF)...
-% follows Wieger et al 2001 MRM 45:495-504
+% follows Weiger et al 2001 MRM 45:495-504
 
 [resol, npe, ncoil, nslices] = size(noise_array);
 psii = eye(ncoil);
