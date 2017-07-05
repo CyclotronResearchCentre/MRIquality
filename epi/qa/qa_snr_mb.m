@@ -15,7 +15,7 @@ global N fitn fitx % global variables used for histogram fit only
 
 %% GET STARTED
 if nargin == 0
-    imfiles = spm_select(Inf,'image','Select images (acquired with RF)')
+    imfiles = spm_select(Inf,'image','Select images (acquired with RF)') %#ok<*NOPRT>
     noisefiles = spm_select(Inf,'image','Select noise images (acquired without RF)')
     PARAMS.MB = input('Enter MB acceleration factor: ');
     PARAMS.PAT = input('Enter PAT acceleration factor: ');
@@ -26,7 +26,7 @@ if nargin == 0
     PARAMS.ncha = input('Enter number of channels: ');
     PARAMS.MB = input('Enter MultiBand factor: ');
     PARAMS.PAT = input('Enter PAT factor (PEx3D): ');
-    PARAMS.outdir = '.';
+    PARAMS.paths.output = '.';
     PARAMS.signalplane = input('Enter slice of refence (signal): ');
     PARAMS.noiseplane = input('Enter slice of refence (noise): ');
 else
@@ -35,6 +35,23 @@ else
     PARAMS = varargin{3};
 end
 PARAMS.datadir = fileparts(imfiles(1,:));
+
+%% CHECK PARAMETERS
+% Depending on some of the parameters, SNR can be calculated one or another
+% way... Here are comments to make the implementation more readable:
+%
+% noiseplane: the number of the slice used to estimate the noise level.
+%     Typically, if a noise slice has been acquired, it is the outmost
+%     (last) one in the volume. If the noise plane number is set to 0, it
+%     is assumed that no noise plane has been acquired. The noise level
+%     will be estimated based on noise series (data acquired without RF, if
+%     available) or "background" voxels selected using a mask. The latter
+%     method is the least robust since it can be strongly biased by
+%     artefacts contaminating the background voxels.
+% signalplane: the number of the slice used to estimate the signal level.
+%     Typically, the slice at the centre of the phantom is used. If the
+%     number is set to 0, the middle slice of the volume will be used.
+% 
 
 
 %% LOAD DATA
@@ -49,10 +66,9 @@ if ~isempty(noisefiles)
     YNO = spm_read_vols(VNO);
 end
 % data subsets
-noiseslicearray = squeeze(YIM(:,:,PARAMS.noiseplane,:)); % noise plane
-noiseroiarray = noiseslicearray(PARAMS.x_roi,PARAMS.y_roi,:); % ROI in the noise plane
-signalslicearray = squeeze(YIM(:,:,PARAMS.signalplane,:)); % signal plane
-signalroiarray = signalslicearray(PARAMS.x_roi,PARAMS.y_roi,:);% ROI in the signal plane
+% signalslicearray = squeeze(YIM(:,:,PARAMS.signalplane,:)); % signal plane
+% signalroiarray = signalslicearray(PARAMS.x_roi,PARAMS.y_roi,:);% ROI in the signal plane
+signalroiarray = squeeze(YIM(PARAMS.x_roi,PARAMS.y_roi,PARAMS.signalplane,:));% ROI in the signal plane
 
 %% AVERAGE SIGNAL IN ROI
 signal = mean(signalroiarray(:));
@@ -62,7 +78,7 @@ if ~isempty(noisefiles)
     % !!!! if scaling factor differs between noise images and proper
     % images, we need to take it into account (this is
     % noise_scfac/image_scfac):
-    scfac = 1;
+    scfac = PARAMS.scfac;
     
     noisy_vox = YNO(:);
     noisy_vox = noisy_vox(:);
@@ -102,7 +118,7 @@ if ~isempty(noisefiles)
     
     % save figure
     set(gcf,'PaperPositionMode','auto')
-    print(gcf,'-dpng',fullfile(PARAMS.outdir,[PARAMS.resfnam '_NOISE_DISTRIB.png']));
+    print(gcf,'-dpng',fullfile(PARAMS.paths.output,[PARAMS.resfnam '_NOISE_DISTRIB.png']));
     
     % save results in structure SNR
     SNR.sigma_noRF = par3(1)/scfac;
@@ -117,7 +133,7 @@ if ~isempty(noisefiles)
     Ni.mat     = VIM(1).mat;
     Ni.mat0    = VIM(1).mat;
     Ni.descrip = 'SNR volume based on noRF noise estimation';
-    Ni.dat     = file_array(fullfile(PARAMS.outdir,SNR.snrmap), dm, dt, 0, 1, 0);
+    Ni.dat     = file_array(fullfile(PARAMS.paths.output,SNR.snrmap), dm, dt, 0, 1, 0);
     create(Ni);
     Ni.dat(:,:,:) = mean(YIM,4)/SNR.sigma_noRF;
 end
@@ -130,9 +146,25 @@ std_noise = zeros(1,num_vols);
 % DIETRICH1: O. Dietrich et al. MRI 2008;26:754-762.
 % correction factor for noncentral chi-distribution for n channels (0.6551
 % for n = 1, i.e. Rayleigh distribution) 
-for kk = 1:num_vols 
-    tmp = noiseslicearray(PARAMS.x_roi,PARAMS.y_roi,kk);
-    std_noise(kk) = std(tmp(:));
+if PARAMS.noiseplane
+    %noiseslicearray = squeeze(YIM(:,:,PARAMS.noiseplane,:)); % noise plane
+    %noiseroiarray = noiseslicearray(PARAMS.x_roi,PARAMS.y_roi,:); % ROI in the noise plane
+    noiseroiarray = squeeze(YIM(PARAMS.x_roi,PARAMS.y_roi,PARAMS.noiseplane,:)); % ROI in the noise plane
+    for kk = 1:num_vols
+        tmp = noiseroiarray(:,:,kk);
+        std_noise(kk) = std(tmp(:));
+    end
+else % define mask for noise voxels
+    mask = mean(YIM,4);
+    threshold = (myprctile(mask(:),98)-myprctile(mask(:),2))*0.02+myprctile(mask(:),2);
+    mask = (mask<threshold);
+    noiseroiarray = zeros(length(find(mask)),num_vols);
+    for kk=1:num_vols
+        tmp = YIM(:,:,:,kk);
+        tmp = tmp(mask);
+        noiseroiarray(:,kk) = tmp(:);
+        std_noise(kk) = std(tmp(:));
+    end
 end
 corr_noise_distrib = sqrt(2*n-(prod(1:2:2*n-1)/(2^(n-1)*prod(1:n-1)))^2*pi/2);
 SNR.snr_DIETRICH1 = mean(signalroiarray(:))/sqrt(mean(std_noise.^2))*corr_noise_distrib;
@@ -168,13 +200,18 @@ end
 SNR.snr_DIETRICH2 = mean(tmp);
 
 % Write results in file
-fid = fopen(fullfile(PARAMS.outdir, [PARAMS.resfnam '.txt']),'a');
+fid = fopen(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.txt']),'a');
 if ~isempty(noisefiles);
     fprintf(fid,'\nNOISE RESULTS IN ROI\n');
     fprintf(fid,'Central Chi distribution (%d channels, MB%d, PAT%d)\n', PARAMS.ncha, PARAMS.MB, PARAMS.PAT);
     fprintf(fid,'Parameters estimated: \n    sigma = %5.2f \n    A = %6.0f \n    Neff = %5.2f \n    Residuals = %4.3e\n', par3(1), par3(2), par3(3), fval3);
 end
 fprintf(fid,'\nSNR RESULTS\n');
+if PARAMS.noiseplane
+    fprintf(fid,'NOTE: noise estimated from noise plane #%d\n',PARAMS.noiseplane);
+else
+    fprintf(fid,'WARNING: noise estimated from "background" voxels. Possible bias...\n');
+end    
 if ~isempty(noisefiles);fprintf(fid,'    noRF estimate:         %5.2f\n', SNR.snr_noRF);end
 fprintf(fid,'    DIETRICH1:             %5.2f\n', SNR.snr_DIETRICH1);
 if ~isempty(noisefiles);fprintf(fid,'    DIETRICH1 (Neff):      %5.2f\n', SNR.snr_DIETRICH1_neff);end

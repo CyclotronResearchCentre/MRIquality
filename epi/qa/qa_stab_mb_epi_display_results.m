@@ -41,10 +41,10 @@ gposx = 1.92;
 gposy = 1;
 gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
 if isfield(RES.SNR, 'snrmap')
-    A = eb_orthviews(fullfile(PARAMS.outdir,RES.SNR.snrmap), sect(1), sect(2), sect(3));
+    A = eb_orthviews(fullfile(PARAMS.paths.output,RES.SNR.snrmap), sect(1), sect(2), sect(3));
     titl = 'SNR map';
 else
-    A = eb_orthviews(fullfile(PARAMS.outdir,RES.SPAT.meanim), sect(1), sect(2), sect(3));
+    A = eb_orthviews(fullfile(PARAMS.paths.output,RES.SPAT.meanim), sect(1), sect(2), sect(3));
     titl = 'Mean image';
 end
 imshow(A,[]);
@@ -52,16 +52,13 @@ colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.
 set(gca,'units','centimeters','position',gcapos);
 title(titl,'fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
-tmpx = get(gca,'XLim');
-tmpy = get(gca,'YLim');
-text(tmpx(2)/2,-tmpy(2)/2,[PARAMS.date ' (' PARAMS.comment ')'],'fontname',def_fontname,'fontsize',12,'horizontalalignment','center');
 
 % display the tSNR map 
 subplot(3,3,3);
 gposx = 2.98;
 gposy = 1;
 gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
-A = eb_orthviews(fullfile(PARAMS.outdir,RES.FBIRN.tsnrmap), sect(1), sect(2), sect(3));
+A = eb_orthviews(fullfile(PARAMS.paths.output,RES.FBIRN.tsnrmap), sect(1), sect(2), sect(3));
 imshow(A,[]);
 colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
 set(gca,'units','centimeters','position',gcapos);
@@ -72,7 +69,7 @@ set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 subplot(3,3,4);
 gposx = 1;
 gposy = 2;
-stdvol = spm_read_vols(spm_vol(fullfile(PARAMS.outdir,RES.FBIRN.sdmap)));
+stdvol = spm_read_vols(spm_vol(fullfile(PARAMS.paths.output,RES.FBIRN.sdmap)));
 dim = size(stdvol);
 montage(reshape(stdvol,[dim(1),dim(2),1,dim(3)]));
 caxis([min(stdvol(:)), max(stdvol(:))*0.75]);
@@ -130,11 +127,16 @@ set(gca,'units','centimeters','position',[gca_gap_h*gposx+gca_width*(gposx-1) gc
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 set(gca,'XLim',[1 N_max]);
 
+% general title for the figure:
+gentitl = [PARAMS.date ' (' PARAMS.comment ')'];
+A = annotation(gcf,'textbox',[0.0 0.95 1.0 0.05],'String',gentitl);
+set(A,'LineStyle','none','HorizontalAlignment','center')
+set(A,'FontName',def_fontname,'fontsize',12);
+
 % save summary figure
 set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng',fullfile(PARAMS.outdir, [PARAMS.resfnam '.png']));
+print(gcf,'-dpng',fullfile(PARAMS.paths.output, [PARAMS.resfnam '.png']));
 %saveas(gcf,fullfile(QA.outputdir, [PARAMS.resfnam '.fig']));
-
 
 return;
 

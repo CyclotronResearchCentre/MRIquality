@@ -16,7 +16,7 @@ if isfield(job.output,'indir')
     PARAMS.paths.output = fullfile(PARAMS.paths.input,'stab');
     if ~exist(PARAMS.paths.output,'dir');mkdir(PARAMS.paths.output);end
 else
-    PARAMS.paths.output = job.output.ourdir{1};
+    PARAMS.paths.output = job.output.outdir{1};
 end
 
 % detect whether we have DICOM or NIFTI input files
@@ -44,7 +44,7 @@ PARAMS.comment = job.procpar.comment;
 
 % retrieve values from headers
 hdrim = get_metadata(Ninim(1,:));
-if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end %#ok<NASGU>
+if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end
 
 % define and create temporary working directory
 PARAMS.date = datestr(get_metadata_val(hdrim{1}, 'StudyDate'),'yyyymmdd');
@@ -123,6 +123,12 @@ for ccha = 1:length(tmp(1).asList);
     end
 end
 PARAMS.nvols = size(Ninim,1);
+PARAMS.scfac = 1;
+if ~isempty(Ninno) % the ratio between noise and image scale factors
+    tmpscim = get_metadata_val(hdrim{1},'sCoilSelectUI');
+    tmpscno = get_metadata_val(hdrno{1},'sCoilSelectUI');
+    PARAMS.scfac = tmpscno.dOverallImageScaleFactor/tmpscim.dOverallImageScaleFactor; 
+end
 
 % Signal plane and noise plane are hardcoded
 PARAMS.signalplane = job.procpar.sigplane;
@@ -130,11 +136,8 @@ if PARAMS.signalplane==0 % automatically defined as being the mid-volume slice
     PARAMS.signalplane = round(hdrim{1}.acqpar.CSASeriesHeaderInfo.MrPhoenixProtocol.sSliceArray.lSize/2);
 end
 PARAMS.noiseplane = job.procpar.noiplane;
-if PARAMS.signalplane==0 % automatically defined as being the last slice
-    PARAMS.noiseplane = hdrim{1}.acqpar.CSASeriesHeaderInfo.MrPhoenixProtocol.sSliceArray.lSize;
-end
-% NB: if PARAMS.signalplane<0, automated masking is applied to select noise
-% voxels.
+% NB: if PARAMS.signalplane==0, it is assumed that no noise plane was
+% acquired. Automated masking is applied to select noise voxels.
     
 % write general information about the acquisition
 fid = fopen(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.txt']),'a');
@@ -185,7 +188,7 @@ end
 % PARAMS.noiseplane = 60;
 
 % define central ROI for quantitative ROI analysis
-N_max = 21; % maximal length of rectangular ROI edge
+N_max = job.procpar.roisize; % maximal length of rectangular ROI edge
 xg = ceil(PARAMS.RO_col/2)+1;
 yg = ceil(PARAMS.PE_lin/2)+1;
 PARAMS.x_roi = (-floor(N_max/2):floor(N_max/2)) + xg;

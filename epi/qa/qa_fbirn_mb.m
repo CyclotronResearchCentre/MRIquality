@@ -39,13 +39,16 @@ Ni         = nifti;
 Ni.mat     = VIM(1).mat;
 Ni.mat0    = VIM(1).mat;
 Ni.descrip = 'voxel-wise standard deviation over the time series';
-Ni.dat     = file_array(fullfile(PARAMS.outdir,QA.sdmap), dm, dt, 0, 1, 0);
+Ni.dat     = file_array(fullfile(PARAMS.paths.output,QA.sdmap), dm, dt, 0, 1, 0);
 create(Ni);
 Ni.dat(:,:,:) = stdvol;
 
 
 % Extract voxel time series from ROI
 % Data, detrended data, and 2nd order polynomial drift fit
+if PARAMS.signalplane==0
+    PARAMS.signalplane = round(0.5*dm(3));
+end
 signalslicearray = squeeze(YIM(:,:,PARAMS.signalplane,:)); % signal plane
 signalroiarray = signalslicearray(PARAMS.x_roi,PARAMS.y_roi,:);% ROI in the signal plane
 detrslicearray     = zeros([N_max N_max num_vols]);
@@ -86,7 +89,7 @@ Ni         = nifti;
 Ni.mat     = VIM(1).mat;
 Ni.mat0    = VIM(1).mat;
 Ni.descrip = 'tSNR volume';
-Ni.dat     = file_array(fullfile(PARAMS.outdir,QA.tsnrmap), dm, dt, 0, 1, 0);
+Ni.dat     = file_array(fullfile(PARAMS.paths.output,QA.tsnrmap), dm, dt, 0, 1, 0);
 create(Ni);
 Ni.dat(:,:,:) = tsnr_im;
 
@@ -164,7 +167,7 @@ end
 QA.y_diam = dia/interp_fact*sqrt(sum((VIM(1).mat*[1 0 0 0]').^2));
 
 % Write results in file
-fid = fopen(fullfile(PARAMS.outdir, [PARAMS.resfnam '.txt']),'a');
+fid = fopen(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.txt']),'a');
 fprintf(fid,'\nSTABILITY RESULTS\n');
 fprintf(fid,'    SD map: %s\n', QA.sdmap);
 fprintf(fid,'    tSNR map: %s\n', QA.tsnrmap);
