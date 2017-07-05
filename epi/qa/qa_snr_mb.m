@@ -168,9 +168,11 @@ else % define mask for noise voxels
 end
 corr_noise_distrib = sqrt(2*n-(prod(1:2:2*n-1)/(2^(n-1)*prod(1:n-1)))^2*pi/2);
 SNR.snr_DIETRICH1 = mean(signalroiarray(:))/sqrt(mean(std_noise.^2))*corr_noise_distrib;
-% using the effective number of coils caluclated above
+% using the effective number of coils caluclated above, rounded
+% (result is crap with non integer values)
 if ~isempty(noisefiles)
-    corr_noise_distrib = sqrt(2*neff-(prod(1:2:2*neff-1)/(2^(neff-1)*prod(1:neff-1)))^2*pi/2);
+    rneff = round(neff);
+    corr_noise_distrib = sqrt(2*rneff-(prod(1:2:2*rneff-1)/(2^(rneff-1)*prod(1:rneff-1)))^2*pi/2);
     SNR.snr_DIETRICH1_neff = mean(signalroiarray(:))/sqrt(mean(std_noise.^2))*corr_noise_distrib;
 end
 
