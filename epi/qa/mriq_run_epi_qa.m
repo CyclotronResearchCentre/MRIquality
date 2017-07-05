@@ -89,7 +89,6 @@ if ~isempty(Ninno)
 end
 Ninno = NinnoTmp;
 Ninim = NinimTmp;
-cd(PARAMS.paths.process);
 
 % clear a few variables
 clear NinimTmp NinnoTmp;
