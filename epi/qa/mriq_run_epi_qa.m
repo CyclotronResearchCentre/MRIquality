@@ -18,6 +18,15 @@ if isfield(job.output,'indir')
 else
     PARAMS.paths.output = job.output.outdir{1};
 end
+PARAMS.archive = isfield(job.archive,'archON');
+if PARAMS.archive
+    PARAMS.paths.archive = job.archive.archON{1};
+    fprintf(1,['\nData will be cleaned up at the end of the processing, including ' ...
+        '\noriginal images compression and archiving to the following directory:' ...
+        '\n\t%s\n'],PARAMS.paths.archive);
+else
+    fprintf(1,'\nData won''t be cleaned up, compressed nor archived.\n');
+end
 
 % detect whether we have DICOM or NIFTI input files
 if strcmp('nii',spm_str_manip(job.series.EPIseries{1},'e'))
@@ -25,11 +34,14 @@ if strcmp('nii',spm_str_manip(job.series.EPIseries{1},'e'))
     PARAMS.intype = 'NIFTI';
     Ninim = char(job.series.EPIseries);
     Ninno = char(job.series.NOISEseries);
-    %% check whether metadata are available!! error otherwise or...?
+    % check whether metadata are available!! error otherwise or...?
+    metadatatmp = get_metadata(Ninim(1,:));
+    if isempty(metadatatmp{1})
+        error('No metadata associated with the input NIFTI files. Cannot proceed.');
+    end
 else
-    % DICOM CASE: conversion into NIFTI first (wiht metadata)
+    % DICOM CASE: conversion into NIFTI first (with metadata)
     PARAMS.intype = 'DICOM';
-    %% print DICOM conversion process...
     json = struct('extended',false,'separate',true); 
     hdr = spm_dicom_headers(char(job.series.EPIseries));
     Ninim = spm_dicom_convert(hdr,'all','flat','nii',PARAMS.paths.input,json); 
@@ -50,10 +62,12 @@ if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end
 PARAMS.date = datestr(get_metadata_val(hdrim{1}, 'StudyDate'),'yyyymmdd');
 PARAMS.series = get_metadata_val(hdrim{1}, 'SeriesNumber');
 PARAMS.studyID = str2double(get_metadata_val(hdrim{1}, 'StudyID'));
-PARAMS.resfnam = sprintf('%s_stud%0.4d_ser%0.4d%', PARAMS.date, PARAMS.studyID, PARAMS.series);
-PARAMS.paths.process = fullfile(PARAMS.paths.input,PARAMS.resfnam);
-[SUCCESS,MESSAGE,~] = mkdir(PARAMS.paths.process);
-if ~SUCCESS; error(MESSAGE); end
+PARAMS.scanner = get_metadata_val(hdrim{1},'ManufacturerModelName');
+PARAMS.resfnam = sprintf('%s_%s_stud%0.4d_ser%0.4d%', PARAMS.scanner, PARAMS.date, PARAMS.studyID, PARAMS.series);
+tmp = mriq_get_defaults('epi_qa.paths.temp');
+PARAMS.paths.process = tmp{1};
+% [SUCCESS,MESSAGE,~] = mkdir(PARAMS.paths.process);
+% if ~SUCCESS; error(MESSAGE); end
 
 % copy NIFTI files to processing directory (always keep input images
 % untouched, i.e. original NIFTI files must be copied to processing
@@ -129,19 +143,20 @@ if ~isempty(Ninno) % the ratio between noise and image scale factors
     PARAMS.scfac = tmpscno.dOverallImageScaleFactor/tmpscim.dOverallImageScaleFactor; 
 end
 
-% Signal plane and noise plane are hardcoded
+% Signal plane and noise plane
 PARAMS.signalplane = job.procpar.sigplane;
 if PARAMS.signalplane==0 % automatically defined as being the mid-volume slice
     PARAMS.signalplane = round(hdrim{1}.acqpar.CSASeriesHeaderInfo.MrPhoenixProtocol.sSliceArray.lSize/2);
 end
 PARAMS.noiseplane = job.procpar.noiplane;
-% NB: if PARAMS.signalplane==0, it is assumed that no noise plane was
+% NB: if PARAMS.noiseplane==0, it is assumed that no noise plane was
 % acquired. Automated masking is applied to select noise voxels.
     
 % write general information about the acquisition
 fid = fopen(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.txt']),'a');
 fprintf(fid,'%s - %s\n',PARAMS.comment, PARAMS.date);
 fprintf(fid,'\nACQUISITION PARAMETERS\n');
+fprintf(fid,'    Scanner: %s\n', PARAMS.scanner);
 fprintf(fid,'    Coils: %s (%d channels)\n', PARAMS.coils, PARAMS.ncha);
 fprintf(fid,'    Acceleration: MB%d + PAT%d\n', PARAMS.MB, PARAMS.PAT);
 fprintf(fid,'    TR = %5.0f ms\n', PARAMS.TR);
@@ -182,9 +197,6 @@ if size(Ninim,1)>1
     fprintf(fid,'    Maximum spatial drift in mm: %5.4f mm\n', RES.SPAT.max_drift);
     fclose(fid);
 end
-
-% PARAMS.signalplane = 30;
-% PARAMS.noiseplane = 60;
 
 % define central ROI for quantitative ROI analysis
 N_max = job.procpar.roisize; % maximal length of rectangular ROI edge
@@ -228,17 +240,30 @@ disp(RES.FBIRN);
 qa_stab_mb_epi_display_results(RES, PARAMS);
 
 % save all results and parameters
-save(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.mat']),'RES','PARAMS');
+spm_jsonwrite(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.json']),struct('PARAMS',PARAMS,'RES',RES),struct('indent','\t'));
+% save the job:
+matlabbatch{1}.spm.tools.mriq.epi.epiqa = job;
+save(fullfile(PARAMS.paths.output, [PARAMS.resfnam '_batch.mat']), 'matlabbatch');
 
-% % % % % % % tidy up a bit...
-% % % % % % % - delete all nifti files
-% % % % % % % - tar.gzip the current data directory with dicom data only
-% % % % % % % - delete the directory
-% % % % % % delete('*.nii');
-% % % % % % cd ..;
-% % % % % % tar([PARAMS.paths.process(1:end-1) '.tar.gz'],PARAMS.paths.process);
-% % % % % % rmdir(PARAMS.paths.process,'s');
-% % % % % % 
-% % % % % % cd(PARAMS.paths.matlab);
-% % % % % % rmpath(PARAMS.paths.matlab);
-% % % % % % clear all;
+if PARAMS.archive
+    % tidy up a bit...
+    % - tar.gzip input images only and archive in defined directory
+    files2tar = cat(1, job.series.EPIseries, job.series.NOISEseries);
+    % if NIFTI files as inputs, must add JSON metadata
+    if strcmp(PARAMS.intype,'NIFTI')
+        files2tarJSON = cell(length(files2tar),1);
+        for cf = 1:size(files2tar,1)
+            files2tarJSON{cf} = [spm_str_manip(files2tar{cf},'s') '.json']; 
+        end
+        files2tar = cat(1, files2tar, files2tarJSON);
+    end
+    tar(fullfile(PARAMS.paths.archive, [PARAMS.resfnam '.tar.gz']), files2tar);
+
+    % - delete all other intermediate files from temp directory
+    files2del = spm_select('FPList',PARAMS.paths.process);
+    for cf = 1: size(files2del, 1)
+        delete(strtrim(files2del(cf,:)));
+    end
+end
+
+end

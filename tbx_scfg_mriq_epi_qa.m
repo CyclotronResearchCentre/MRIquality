@@ -9,6 +9,10 @@ function epiqa = tbx_scfg_mriq_epi_qa
 % Written by Evelyne Balteau, Cyclotron Research Centre, June 2017
 %==========================================================================
 
+defaultoutdir = mriq_get_defaults('epi_qa.paths.stab');
+defaultarchiv = mriq_get_defaults('epi_qa.paths.arch');
+
+
 %==========================================================================
 % Unprocessed EPI series: can be either in DICOM or nii format. Nifti data
 % are axpected to be associated with JSON metadata
@@ -68,13 +72,15 @@ indir.val     = {'yes'};
 %==========================================================================
 % outdir Output directory
 %==========================================================================
-outdir         = cfg_files;
-outdir.tag     = 'outdir';
-outdir.name    = 'User-defined output directory';
-outdir.help    = {'Select a directory where output files will be written to.'};
-outdir.filter = 'dir';
-outdir.ufilter = '.*';
-outdir.num     = [1 1];
+outdir          = cfg_files;
+outdir.tag      = 'outdir';
+outdir.name     = 'User-defined output directory';
+outdir.help     = {'Select a directory where output files will be written to.'};
+outdir.filter   = 'dir';
+outdir.ufilter  = '.*';
+outdir.num      = [1 1];
+outdir.def      = @(val)mriq_get_defaults('epi_qa.paths.stab',val{:}); % NOTE: mriq_get_defaults must return a cellstr!
+
 
 %==========================================================================
 % output Output choice
@@ -91,6 +97,44 @@ output.help    = {'Output directory for summary results.', ...
 output.values  = {indir outdir };
 output.val = {indir};
 
+
+%==========================================================================
+% Archiving options: OFF
+%==========================================================================
+archOFF         = cfg_entry;
+archOFF.tag     = 'archOFF';
+archOFF.name    = 'No archiving/compression';
+archOFF.help    = {'Original files, intermediate files and results are kept untouched.'};
+archOFF.strtype = 's';
+archOFF.num     = [1 Inf];
+archOFF.val     = {'Archiving disabled'};
+
+%==========================================================================
+% Archiving options: ON
+%==========================================================================
+archON          = cfg_files;
+archON.tag      = 'archON';
+archON.name     = 'Archiving enabled';
+archON.help     = {'Select a directory where original files will be compressed/archived.'};
+archON.filter   = 'dir';
+archON.ufilter  = '.*';
+archON.num      = [1 1];
+archON.def      = @(val)mriq_get_defaults('epi_qa.paths.arch', val{:}); % NOTE: mriq_get_defaults must return a cellstr!
+
+
+%==========================================================================
+% Archiving options
+%==========================================================================
+archive         = cfg_choice;
+archive.tag     = 'archive';
+archive.name    = 'Archiving options';
+archive.help    = {['If enabled, the input images (NIFTI or DICOM format) ' ...
+    'are tar/gz compressed and saved into the selected archiving directory. ' ...
+    'All intermediate files are deleted.'], ...
+    ['If archiving is disabled, original images, intermediate files and ' ...
+    'results will be kept untouched.']};
+archive.values  = {archON archOFF};
+archive.val = {archON};
 
 %==========================================================================
 % Signal plane
@@ -170,7 +214,7 @@ procpar.val       = {sigplane noiplane roisize comment};
 epiqa         = cfg_exbranch;
 epiqa.tag     = 'epiqa';
 epiqa.name    = 'Quality assurance tools for EPI';
-epiqa.val     = {series output procpar};
+epiqa.val     = {series output archive procpar};
 epiqa.help    = {'Tools for EPI quality assurance, including SNR and stability estimates.'};
 epiqa.prog    = @mriq_run_epi_qa;
 % epiqa.vout    = @vout_create;
