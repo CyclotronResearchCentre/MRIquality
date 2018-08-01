@@ -242,6 +242,7 @@ qa_stab_mb_epi_display_results(RES, PARAMS);
 % save all results and parameters
 spm_jsonwrite(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.json']),struct('PARAMS',PARAMS,'RES',RES),struct('indent','\t'));
 % save the job:
+clear matlabbatch;
 matlabbatch{1}.spm.tools.mriq.epi.epiqa = job;
 save(fullfile(PARAMS.paths.output, [PARAMS.resfnam '_batch.mat']), 'matlabbatch');
 
