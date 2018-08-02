@@ -9,8 +9,8 @@ function epiqa = tbx_scfg_mriq_epi_qa
 % Written by Evelyne Balteau, Cyclotron Research Centre, June 2017
 %==========================================================================
 
-defaultoutdir = mriq_get_defaults('epi_qa.paths.stab');
-defaultarchiv = mriq_get_defaults('epi_qa.paths.arch');
+% defaultoutdir = mriq_get_defaults('epi_qa.paths.stab');
+% defaultarchiv = mriq_get_defaults('epi_qa.paths.arch');
 
 
 %==========================================================================
@@ -58,45 +58,21 @@ series.help      = {['Input EPI images (time series and noise images if ' ...
 series.val       = {EPIseries NOISEseries};
 
 %==========================================================================
-% Output directory for summary results
+% outdir Output directory for summary results
 %==========================================================================
-indir         = cfg_entry;
-indir.tag     = 'indir';
-indir.name    = 'Input directory';
-indir.help    = {'Output files will be written to the same folder ',...
-    'as each corresponding input file.'};
-indir.strtype = 's';
-indir.num     = [1 Inf];
-indir.val     = {'yes'};
-
-%==========================================================================
-% outdir Output directory
-%==========================================================================
-outdir          = cfg_files;
-outdir.tag      = 'outdir';
-outdir.name     = 'User-defined output directory';
-outdir.help     = {'Select a directory where output files will be written to.'};
-outdir.filter   = 'dir';
-outdir.ufilter  = '.*';
-outdir.num      = [1 1];
-outdir.def      = @(val)mriq_get_defaults('epi_qa.paths.stab',val{:}); % NOTE: mriq_get_defaults must return a cellstr!
-
-
-%==========================================================================
-% output Output choice
-%==========================================================================
-output         = cfg_choice;
-output.tag     = 'output';
-output.name    = 'Output directory';
-output.help    = {'Output directory for summary results.', ...
-    ['The output directory can be either the input directory or ' ...
-    'any user-refined directory. In the former case, results will be saved ' ...
-    'in a ''stab'' directory located within the input directory.'], ...
-    ['Note that all other results will be saved in the ' ...
+outdir         = cfg_files;
+outdir.tag     = 'outdir';
+outdir.name    = 'Output directory';
+% outdir.val{1}  = {''};
+outdir.help    = {'Output directory for summary results.'
+    ['If no directory is given, summary results will be saved ' ...
+    'in a ''stab'' directory located within the input directory.']
+    ['Note that all other (non summary) results will be saved in the ' ...
     '<input directory>/stab directory.']};
-output.values  = {indir outdir };
-output.val = {indir};
-
+outdir.filter  = 'dir';
+outdir.ufilter = '.*';
+outdir.num     = [0 1];
+outdir.def      = @(val)mriq_get_defaults('epi_qa.paths.stab',val{:}); % NOTE: mriq_get_defaults must return a cellstr!
 
 %==========================================================================
 % Archiving options: OFF
@@ -213,112 +189,10 @@ procpar.val       = {sigplane noiplane roisize comment};
 %==========================================================================
 epiqa         = cfg_exbranch;
 epiqa.tag     = 'epiqa';
-epiqa.name    = 'Quality assurance tools for EPI';
-epiqa.val     = {series output archive procpar};
+epiqa.name    = 'Quality assurance';
+epiqa.val     = {series outdir archive procpar};
 epiqa.help    = {'Tools for EPI quality assurance, including SNR and stability estimates.'};
 epiqa.prog    = @mriq_run_epi_qa;
-% epiqa.vout    = @vout_create;
+% epiqa.vout    = @vout_epi_qa; % not implemented
 
 end
-%----------------------------------------------------------------------
-
-
-% ========================================================================
-%% VOUT & OTHER SUBFUNCTIONS
-% ========================================================================
-% The RUN function:
-% - out = hmri_run_create(job)
-% is defined separately.
-%_______________________________________________________________________
-
-function dep = vout_create(job)
-% This depends on job contents, which may not be present when virtual
-% outputs are calculated.
-
-if ~isfield(job, 'subj') % Many subjects
-    dep(1) = cfg_dep;
-    dep(1).sname = 'R1 Maps';
-    dep(1).src_output = substruct('.','R1','()',{':'});
-    dep(1).tgt_spec = cfg_findspec({{'filter','image','strtype','e'}});
-    
-    dep(2) = cfg_dep;
-    dep(2).sname = 'R2s Maps';
-    dep(2).src_output = substruct('.','R2s','()',{':'});
-    dep(2).tgt_spec = cfg_findspec({{'filter','image','strtype','e'}});
-    
-    dep(3) = cfg_dep;
-    dep(3).sname = 'MT Maps';
-    dep(3).src_output = substruct('.','MT','()',{':'});
-    dep(3).tgt_spec = cfg_findspec({{'filter','image','strtype','e'}});
-    
-    dep(4) = cfg_dep;
-    dep(4).sname = 'A Maps';
-    dep(4).src_output = substruct('.','A','()',{':'});
-    dep(4).tgt_spec = cfg_findspec({{'filter','image','strtype','e'}});
-    
-    dep(5) = cfg_dep;
-    dep(5).sname = 'T1w Maps';
-    dep(5).src_output = substruct('.','T1w','()',{':'});
-    dep(5).tgt_spec = cfg_findspec({{'filter','image','strtype','e'}});
-    
-else
-    k=1;
-    cdep(5*numel(job.subj),1) = cfg_dep;
-    for i=1:numel(job.subj)
-        
-        cdep(k)            = cfg_dep;
-        cdep(k).sname      = sprintf('R1_subj%d',i);
-        cdep(k).src_output = substruct('.','subj','()',{i},'.','R1','()',{':'});
-        cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-        
-        k=k+1;
-        
-        cdep(k)            = cfg_dep;
-        cdep(k).sname      = sprintf('R2s_subj%d',i);
-        cdep(k).src_output = substruct('.','subj','()',{i},'.','R2s','()',{':'});
-        cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-        
-        k=k+1;
-        
-        cdep(k)            = cfg_dep;
-        cdep(k).sname      = sprintf('MT_subj%d',i);
-        cdep(k).src_output = substruct('.','subj','()',{i},'.','MT','()',{':'});
-        cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-        
-        k=k+1;
-        
-        cdep(k)            = cfg_dep;
-        cdep(k).sname      = sprintf('A_subj%d',i);
-        cdep(k).src_output = substruct('.','subj','()',{i},'.','A','()',{':'});
-        cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-        
-        k=k+1;
-        
-        cdep(k)            = cfg_dep;
-        cdep(k).sname      = sprintf('T1w_subj%d',i);
-        cdep(k).src_output = substruct('.','subj','()',{i},'.','T1w','()',{':'});
-        cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-        
-        k=k+1;
-    end
-    dep = cdep;
-    
-end
-end
-%_______________________________________________________________________
-
-function c = unlimit(c)
-try
-    if isa(c, 'cfg_files')
-        c.num = [0 Inf];
-    end
-catch e %#ok<*NASGU>
-end
-try
-    for i=1:numel(c.val)
-        c.val{i} = unlimit(c.val{i});
-    end
-catch e
-end
-end
-%_______________________________________________________________________

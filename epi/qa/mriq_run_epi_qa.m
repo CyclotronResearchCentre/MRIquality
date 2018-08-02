@@ -12,11 +12,19 @@ function mriq_run_epi_qa(job)
 % Set paths
 PARAMS.paths.input = fileparts(job.series.EPIseries{1});
 PARAMS.paths.matlab = fileparts(mfilename('fullpath')); % directory containing the present script
-if isfield(job.output,'indir')
+if isempty(job.outdir)
     PARAMS.paths.output = fullfile(PARAMS.paths.input,'stab');
-    if ~exist(PARAMS.paths.output,'dir');mkdir(PARAMS.paths.output);end
+    if ~exist(fileparts(PARAMS.paths.output),'dir')
+        error('The specified output directory does not exist');
+    end
+    if ~exist(PARAMS.paths.output,'dir')
+        mkdir(PARAMS.paths.output);
+    end
 else
-    PARAMS.paths.output = job.output.outdir{1};
+    PARAMS.paths.output = job.outdir{1};
+    if ~exist(PARAMS.paths.output,'dir')
+        error('The specified output directory does not exist');
+    end
 end
 PARAMS.archive = isfield(job.archive,'archON');
 if PARAMS.archive
