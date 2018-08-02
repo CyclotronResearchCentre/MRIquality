@@ -17,6 +17,25 @@
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %=========================================================================%
 
+%=========================================================================%
+% This file is part of the MRI quality toolbox.
+% Copyright (C) 2013-2018 - Cyclotron Research Centre
+% University of Liege, Belgium
+%
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%=========================================================================%
+
 function out = qc_check_sequential(job)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Description: sequential display of EPI series to detect spikes, artefacts
@@ -26,23 +45,15 @@ function out = qc_check_sequential(job)
 % Warning and disclaimer: This software is for research use only. 
 % Do not use it for clinical or diagnostic purposes.
 %--------------------------------------------------------------------------
-% Written by Evelyne Balteau - 2013
+% Written by Evelyne Balteau - 2013-2018
 % Cyclotron Research Centre, University of Liege, Belgium
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for in=1:numel(job.subj)
-    local_job.subj = job.subj(in);
-    out_loc = qc_check_sequential_local(local_job);
-    out.subj(in) = out_loc.subj(1);
-end
-end
-
-function out_loc = qc_check_sequential_local(job)
 global handle P;
 
 disp('----- Loading EPI series -----');
 
-P = char(job.subj.raws);
+P = char(job.EPIimages);
 nmeas = size(P,1);
 Y = spm_read_vols(spm_vol(P(1:min(nmeas,10),:)));
 maxmag = max(Y(:));
@@ -89,5 +100,5 @@ manage_UI('refresh');
 
 disp('----- Ready for inspection -----');
 
-out_loc = job;
+out = job;
 end

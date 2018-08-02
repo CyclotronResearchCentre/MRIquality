@@ -1,6 +1,6 @@
 %=========================================================================%
-% This file is part of the Quality Control Toolbox (TCQ)
-% Copyright (C) 2013 - Cyclotron Research Centre
+% This file is part of the MRI quality toolbox.
+% Copyright (C) 2013-2018 - Cyclotron Research Centre
 % University of Liege, Belgium
 %
 % This program is free software: you can redistribute it and/or modify
@@ -58,27 +58,20 @@ function out = qc_spike_check(job)
 % is observed, please notify the physics group for support.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for in=1:numel(job.subj)
-    local_job.subj = job.subj(in);
-    local_job.params_spike  = job.params_spike;
-    out_loc = qc_spike_check_local(local_job);
-    out.subj(in).spcfiles = out_loc.spcfiles;
-end
-end
-
-function out_loc = qc_spike_check_local(job)
-
 disp('----- Automated spike detection and correction tool -----');
 fprintf(['\nWARNING: Always check the output of this procedure before going ahead\n'...
          '           with your analysis. Never assume it worked properly ;)!!\n\n']);
 
-P = char(job.subj.raws);
+P = char(job.EPIimages);
 
 % to retrieve output directory and a few other useful parameters
-if isfield(job.subj(1).output,'indir') && job.subj(1).output.indir == 1
-    outdir = fileparts(P(1,:));
+if isempty(job.outdir{1})
+    outdir = fullfile(fileparts(P(1,:)),'spcorrected');
+    if ~exist(outdir,'dir')
+        mkdir(outdir);
+    end
 else
-    outdir = job.subj(1).output.outdir{1};
+    outdir = job.outdir{1};
 end
 
 % whether correction should be applied or not (if possible)
@@ -144,7 +137,7 @@ for cslice = 1:nk
     line([0 nl],[1 1]*(average_noise(cslice)-variation_of_noise(cslice)),'color',[0 0 0]);
     set(gca,'XLim',[0 nl],'FontSize',5);
 end
-print(gcf,'-dpng',[outdir '\' n '_noise_time_course.png']);
+print(gcf,'-dpng',fullfile(outdir,[n '_noise_time_course.png']));
 
 % % display figure with average and std of noise for each slice
 % figure('color',[1 1 1],'position',[50 50 800 800]);
@@ -215,7 +208,7 @@ if (bCorrect && bPossible)
     end
     for nvol = 1:nl
         [cpath,cnam,cext] = fileparts(V(nvol).fname);
-        V(nvol).fname = [outdir '/spc' cnam cext];
+        V(nvol).fname = fullfile(outdir, ['spc' cnam cext]);
         spm_write_vol(V(nvol),spcY(:,:,:,nvol));
     end
 end
@@ -223,7 +216,7 @@ end
 % save log file with processing information and pictures for visual
 % inspection of the spiky volumes
 [cpath,cnam] = fileparts(P(1,:));
-fid = fopen([outdir '\' cnam '_spike_check_log.txt'],'w');
+fid = fopen(fullfile(outdir,[cnam '_spike_check_log.txt']),'w');
 fprintf(fid,'LOG FILE FOR SPIKE CHECK\n');
 fprintf(fid,'------------------------\n\n');
 fprintf(fid,'Correction required: %d\n',bCorrect);
@@ -250,7 +243,7 @@ else
                 fprintf(fid,'%s - slice %d \t- intensity %5.2f\n',cnam,spike_list(spiky(cs),1),spikint);
             end
             title([num2str(ns) ' spike(s) detected in ' cnam ' (' list4title(1:end-1) ')']);
-            print(gcf,'-dpng',[outdir '\' cnam '_' num2str(ns) '_spike(s)_detected.png']);
+            print(gcf,'-dpng',fullfile(outdir,[cnam '_' num2str(ns) '_spike(s)_detected.png']));
         end
     end
 end
@@ -259,17 +252,17 @@ fclose(fid);
 % generate the list of output files (dependencies)
 % if correction not required by user, return empty list
 if (bCorrect)
-    out_loc.spcfiles = cell(length(job.subj.raws)-ndisc, 1);
+    out.spcfiles = cell(length(job.EPIimages)-ndisc, 1);
     % if the correction was required but couldn't be performed, the non-
     % corrected files are listed as output files (to avoid the batch to
     % crash if this happens). In that case, there won't be any spc prefix
     % in the file names at the subsequent processing steps.
     if (bPossible); prefx='spc';else prefx='';end
-    for i=ndisc+1:numel(job.subj.raws),
-        [pth,nam,ext,num] = spm_fileparts(job.subj.raws{i});
-        out_loc.spcfiles{i-ndisc} = fullfile(pth,[prefx, nam, ext, num]);
+    for i=ndisc+1:numel(job.EPIimages),
+        [pth,nam,ext,num] = spm_fileparts(job.EPIimages{i});
+        out.spcfiles{i-ndisc} = fullfile(outdir,[prefx, nam, ext, num]);
     end
 else
-    out_loc.spcfiles = {'Spike correction not enabled.'};
+    out.spcfiles = {'Spike correction not enabled.'};
 end
 end
