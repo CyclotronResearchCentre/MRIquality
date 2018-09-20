@@ -193,9 +193,7 @@ spike_check.vout     = @vout_spike_check;
 epiqc         = cfg_choice;
 epiqc.tag     = 'check_epi';
 epiqc.name    = 'Quality control';
-epiqc.help    = {
-                'Quality control tools for EPI images (including fMRI and diffusion imaging).'
-              }';
+epiqc.help    = {'Quality control tools for EPI images (including fMRI and diffusion imaging).'}';
 epiqc.values  = {sequential_check spike_check};
 
 end
