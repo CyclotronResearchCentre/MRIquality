@@ -37,18 +37,38 @@ set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 
 % display the SNR map 
 subplot(3,3,2);
+axis off;
 gposx = 1.92;
 gposy = 1;
 gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
+% gcfpos = get(gcf,'Position');
+% gcapos = gcapos./[gcfpos(3:4) gcfpos(3:4)];
 if isfield(RES.SNR, 'snrmap')
-    A = eb_orthviews(fullfile(PARAMS.paths.output,RES.SNR.snrmap), sect(1), sect(2), sect(3));
+    % gcapos must be in relative units to be used in spm_orthviews, not it cm...
+    % h = spm_orthviews('Image',fullfile(PARAMS.paths.output,RES.SNR.snrmap),gcapos,gcf);
+    % h = spm_orthviews('Image',fullfile(PARAMS.paths.output,RES.SNR.snrmap),get(gca,'position'),gcf);
+    [A, range] = eb_orthviews(fullfile(PARAMS.paths.output,RES.SNR.snrmap), sect(1), sect(2), sect(3));
     titl = 'SNR map';
 else
-    A = eb_orthviews(fullfile(PARAMS.paths.output,RES.SPAT.meanim), sect(1), sect(2), sect(3));
+    [A, range] = eb_orthviews(fullfile(PARAMS.paths.output,RES.SPAT.meanim), sect(1), sect(2), sect(3));
     titl = 'Mean image';
 end
-imshow(A,[]);
-colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
+
+% global st;
+% mini = prctile(st.vols{h}.private.dat(:),5);
+% maxi = prctile(st.vols{h}.private.dat(:),95);
+% tickgap = (maxi-mini)/6;
+% colormap jet;
+% spm_orthviews('interp',0)
+% spm_orthviews('window',h,[mini maxi])
+% spm_orthviews('caption',h,'SNR map');
+% spm_orthviews('caption',h,sprintf('SNR map\n[%.0f %.0f]',mini,maxi),'fontname',def_fontname,'fontsize',title_fontsize);
+% hcb = colorbar;
+% set(hcb,'Ytick',linspace(0,64,6));
+% set(hcb,'Yticklabel', linspace(mini, maxi,6));
+    
+imshow(A,[0 range(2)]);
+colorbar('position',[(gcapos(1)+gcapos(3)*1.03)/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
 set(gca,'units','centimeters','position',gcapos);
 title(titl,'fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
@@ -58,23 +78,27 @@ subplot(3,3,3);
 gposx = 2.98;
 gposy = 1;
 gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
-A = eb_orthviews(fullfile(PARAMS.paths.output,RES.FBIRN.tsnrmap), sect(1), sect(2), sect(3));
-imshow(A,[]);
-colorbar('position',[(gcapos(1)+gcapos(3))*1.01/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
+[A, range] = eb_orthviews(fullfile(PARAMS.paths.output,RES.FBIRN.tsnrmap), sect(1), sect(2), sect(3));
+imshow(A,[0 range(2)]);
+colorbar('position',[(gcapos(1)+gcapos(3)*1.03)/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
 set(gca,'units','centimeters','position',gcapos);
 title('tSNR map','fontname',def_fontname,'fontsize',title_fontsize);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 
-% display SD over all volumes
+% display SD map over all volumes
 subplot(3,3,4);
-gposx = 1;
+gposx = 0.88;
 gposy = 2;
-stdvol = spm_read_vols(spm_vol(fullfile(PARAMS.paths.output,RES.FBIRN.sdmap)));
-dim = size(stdvol);
-montage(reshape(stdvol,[dim(1),dim(2),1,dim(3)]));
-caxis([min(stdvol(:)), max(stdvol(:))*0.75]);
+gcapos = [gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height];
+[A, range] = eb_orthviews(fullfile(PARAMS.paths.output,RES.FBIRN.sdmap), sect(1), sect(2), sect(3));
+imshow(A,[0 range(2)]);
+colorbar('position',[(gcapos(1)+gcapos(3)*1.03)/figpos(3) gcapos(2)/figpos(4) 0.02 gcapos(4)/figpos(4)])
+% stdvol = spm_read_vols(spm_vol(fullfile(PARAMS.paths.output,RES.FBIRN.sdmap)));
+% dim = size(stdvol);
+% montage(reshape(stdvol,[dim(1),dim(2),1,dim(3)]));
+% caxis([min(stdvol(:)), max(stdvol(:))*0.75]);
 title('SD of time series (w/o detrending)','fontname',def_fontname,'fontsize',title_fontsize);
-set(gca,'units','centimeters','position',[gca_gap_h*gposx+gca_width*(gposx-1) gca_gap_v*(3-gposy+1)+gca_height*(3-gposy) gca_width gca_height]);
+set(gca,'units','centimeters','position',gcapos);
 set(gca,'fontname',def_fontname,'fontsize',unit_fontsize);
 colormap('jet');
 
