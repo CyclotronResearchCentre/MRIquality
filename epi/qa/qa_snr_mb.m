@@ -95,7 +95,8 @@ if ~isempty(noisefiles)
     fitn = n; fitx = x;
     % first estimate of the parameters (see notebook 28/01/2016):
     N = PARAMS.ncha/PARAMS.MB/PARAMS.PAT;
-    sig = x(n==max(n(:)))/sqrt(2*N-1);
+    sig = x(n==max(n(:)))/sqrt(2*N-1); 
+    sig = sig(1); % just in case there are two bars with height = max
     A = max(n(:))*gamma(N)*sig*2^(N-1)*exp(N-0.5)*(2*N-1)^(0.5-N);
     % adjust all parameters (3-params fit)
     [par3, fval3] = fminsearch(@minfun_CC3,[sig A N]);
