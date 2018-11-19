@@ -66,7 +66,7 @@ end
 Ydetrend = YIM*0.0;
 mean_im = mean(YIM,4);
 mask = mean_im;
-threshold = (myprctile(mask(:),98)-myprctile(mask(:),2))*0.2+myprctile(mask(:),2);
+threshold = (myprctile(mask(:),98)-myprctile(mask(:),2))*0.1+myprctile(mask(:),2);
 mask = (mask>threshold);
 mean_im = mean_im.*mask;
 for i=1:dim(1)
