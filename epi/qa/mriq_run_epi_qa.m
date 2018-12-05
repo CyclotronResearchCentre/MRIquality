@@ -138,9 +138,11 @@ PARAMS.SAR = tmp{1};
 % "ParallelReductionFactorInPlane": 2,
 % "ParallelAcquisition": "YES ",
 % "ParallelAcquisitionTechnique": "SENSE ",
-% NB: must be a ParallelReductionFactorThroughPlane or the like, no
-% examples so far so left our and assumed = 1 here.
+% "ParallelReductionFactorOutOfPlane": 1,
+% not sure the latter is always defined if 2D imaging, left out and assumed
+% to be 1 anyway...
 PARAMS.PAT = get_metadata_val(hdrim{1},'ParallelReductionFactorInPlane');
+if iscell(PARAMS.PAT);PARAMS.PAT = PARAMS.PAT{1};end
 
 % COILS: number of coils not available:
 % "MRReceiveCoilSequence": [
