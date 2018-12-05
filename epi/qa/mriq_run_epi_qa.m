@@ -116,45 +116,55 @@ Ninim = NinimTmp;
 clear NinimTmp NinnoTmp;
 
 % gather a few more acquisition parameters for reccord and processing
-PARAMS.nslices = get_metadata_val(get_metadata_val(hdrim{1}, 'sSliceArray'),'lSize');
+PARAMS.nslices = get_metadata_val(hdrim{1}, 'NumberofSlicesMR');
 PARAMS.TR = get_metadata_val(hdrim{1}, 'RepetitionTime');
 tmp = get_metadata_val(hdrim{1},'AcquisitionMatrix');
-PARAMS.PE_lin = tmp{1}(1);
-PARAMS.RO_col = tmp{1}(4);
-tmp = get_metadata_val(hdrim{1},'ReferenceAmplitude');
-PARAMS.ref_ampl = tmp{1};
-PARAMS.rf_freq = get_metadata_val(hdrim{1},'Frequency');
-PARAMS.field_strength = get_metadata_val(hdrim{1},'FieldStrength');
+PARAMS.PE_lin = tmp(1);
+PARAMS.RO_col = tmp(4);
+% not available in Philips DICOM header
+% tmp = get_metadata_val(hdrim{1},'ReferenceAmplitude');
+% PARAMS.ref_ampl = tmp{1};
+PARAMS.rf_freq = get_metadata_val(hdrim{1},'ImagingFrequency');
+PARAMS.field_strength = get_metadata_val(hdrim{1},'MagneticFieldStrength');
 tmp = get_metadata_val(hdrim{1},'SAR');
 PARAMS.SAR = tmp{1};
-PARAMS.MB = get_metadata_val(hdrim{1},'lMultiBandFactor');
-if isempty(PARAMS.MB)
+% multiband factor not available - seemingly - on Philips
+% Found: "StackType": "PARALLEL" (could indicate usage of multibanding)
+% PARAMS.MB = get_metadata_val(hdrim{1},'lMultiBandFactor'); % "Private_2005_1245": 2?
+% if isempty(PARAMS.MB)
     PARAMS.MB = 1;
-end
-PARAMS.PAT = get_metadata_val(hdrim{1},'lAccelFactPE')*get_metadata_val(hdrim{1},'lAccelFact3D');
-PARAMS.coils = get_metadata_val(hdrim{1},'ImaCoilString');
-PARAMS.ncha = 0;
-tmp = get_metadata_val(hdrim{1},'aRxCoilSelectData');
-tmp = tmp{1};
-for ccha = 1:length(tmp(1).asList);
-    if isfield(tmp(1).asList(ccha),'lElementSelected')
-        if (tmp(1).asList(ccha).lElementSelected == 1)
-            PARAMS.ncha = PARAMS.ncha+1;
-        end
-    end
-end
+% end
+% PAT implemented as follows:
+% "ParallelReductionFactorInPlane": 2,
+% "ParallelAcquisition": "YES ",
+% "ParallelAcquisitionTechnique": "SENSE ",
+% NB: must be a ParallelReductionFactorThroughPlane or the like, no
+% examples so far so left our and assumed = 1 here.
+PARAMS.PAT = get_metadata_val(hdrim{1},'ParallelReductionFactorInPlane');
+
+% COILS: number of coils not available:
+% "MRReceiveCoilSequence": [
+%   {
+%     "ReceiveCoilName": "MULTI COIL",
+% 	  "ReceiveCoilType": "MULTICOIL ",
+%     "QuadratureReceiveCoil": "NO",
+%     "MultiCoilDefinitionSequence": [
+%       {
+%         "MultiCoilElementName": "MULTI ELEMENT ",
+%         "MultiCoilElementUsed": "YES "
+%       }
+%     ]
+%   }
+% ],
+PARAMS.coils = get_metadata_val(hdrim{1},'ReceiveCoilName');
+PARAMS.ncha = 32;
 PARAMS.nvols = size(Ninim,1);
 PARAMS.scfac = 1;
-if ~isempty(Ninno) % the ratio between noise and image scale factors
-    tmpscim = get_metadata_val(hdrim{1},'sCoilSelectUI');
-    tmpscno = get_metadata_val(hdrno{1},'sCoilSelectUI');
-    PARAMS.scfac = tmpscno.dOverallImageScaleFactor/tmpscim.dOverallImageScaleFactor; 
-end
 
 % Signal plane and noise plane
 PARAMS.signalplane = job.procpar.sigplane;
 if PARAMS.signalplane==0 % automatically defined as being the mid-volume slice
-    PARAMS.signalplane = round(hdrim{1}.acqpar.CSASeriesHeaderInfo.MrPhoenixProtocol.sSliceArray.lSize/2);
+    PARAMS.signalplane = round(PARAMS.nslices/2);
 end
 PARAMS.noiseplane = job.procpar.noiplane;
 % NB: if PARAMS.noiseplane==0, it is assumed that no noise plane was
@@ -166,12 +176,12 @@ fprintf(fid,'%s - %s\n',PARAMS.comment, PARAMS.date);
 fprintf(fid,'\nACQUISITION PARAMETERS\n');
 fprintf(fid,'    Scanner: %s\n', PARAMS.scanner);
 fprintf(fid,'    Coils: %s (%d channels)\n', PARAMS.coils, PARAMS.ncha);
-fprintf(fid,'    Acceleration: MB%d + PAT%d\n', PARAMS.MB, PARAMS.PAT);
+fprintf(fid,'    Acceleration: MB%.1f + PAT%.1f\n', PARAMS.MB, PARAMS.PAT);
 fprintf(fid,'    TR = %5.0f ms\n', PARAMS.TR);
 fprintf(fid,'    Matrix = %dx%d\n', PARAMS.PE_lin, PARAMS.RO_col);
-fprintf(fid,'    B0 = %5.4f T\n', PARAMS.field_strength);
-fprintf(fid,'    Frequency = %9.6f MHz\n', PARAMS.rf_freq/1000000);
-fprintf(fid,'    RefAmpl = %6.3f V\n', PARAMS.ref_ampl);
+fprintf(fid,'    B0 = %.2f T\n', PARAMS.field_strength);
+fprintf(fid,'    Frequency = %9.6f MHz\n', PARAMS.rf_freq);
+% fprintf(fid,'    RefAmpl = %6.3f V\n', PARAMS.ref_ampl);
 fprintf(fid,'    Signal plane = %d\n', PARAMS.signalplane);
 fprintf(fid,'    Noise plane = %d\n', PARAMS.noiseplane);
 fclose(fid);
