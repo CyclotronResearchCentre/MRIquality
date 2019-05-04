@@ -22,6 +22,7 @@ EPIseries.tag       = 'EPIseries';
 EPIseries.name      = 'EPI time series';
 EPIseries.help      = {['Select EPI images (either DICOM or nifti format), ' ...
     'discarding the first few volumes to avoid T1 saturation effect.']};
+EPIseries.dir       = mriq_get_defaults('epi_qa.paths.input');
 EPIseries.filter    = '^*\.(IMA|dcm|nii)$';
 EPIseries.ufilter   = '.*';
 EPIseries.num       = [0 Inf];
@@ -42,6 +43,7 @@ NOISEseries.help      = {'EPI images acquired without RF.', ...
     'acquisitons, to avoid any contamination of the noise slice by signal coming ' ...
     'from other slices. The latter can be strongly biased by artefacts ' ...
     'superimposed on the background noise.']};
+NOISEseries.dir       = mriq_get_defaults('epi_qa.paths.input');
 NOISEseries.filter    = '^*\.(IMA|dcm|nii)$';
 NOISEseries.ufilter   = '.*';
 NOISEseries.num       = [0 Inf];
@@ -72,7 +74,7 @@ outdir.help    = {'Output directory for summary results.'
 outdir.filter  = 'dir';
 outdir.ufilter = '.*';
 outdir.num     = [0 1];
-outdir.def      = @(val)mriq_get_defaults('epi_qa.paths.stab',val{:}); % NOTE: mriq_get_defaults must return a cellstr!
+outdir.def     = @(val)mriq_get_defaults('epi_qa.paths.stab',val{:}); % NOTE: mriq_get_defaults must return a cellstr!
 
 %==========================================================================
 % Archiving options: OFF
