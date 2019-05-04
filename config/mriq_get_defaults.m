@@ -20,7 +20,7 @@ function varargout = mriq_get_defaults(defstr, varargin)
 % Copyright (C) 2013 Wellcome Trust Centre for Neuroimaging
 
 % Volkmar Glauche
-% Then modified for use with the hMRI toolbox by Christophe Phillips
+% Modified by ebalteau for use with the MRI quality toolbox
 % Cyclotron Research Centre, University of Liege, Belgium
 
 global mriq_def;
@@ -52,24 +52,3 @@ catch %#ok<CTCH>
 end
 
 end
-
-%% Some demo stuff
-% %
-% % get the defaults in a standard routine:
-% % - a single parameter
-% v = mriq_get_defaults('param1')
-% v2 = mriq_get_defaults('set1.prefix')
-% 
-% % - a set of parameters (substructure)
-% s = mriq_get_defaults('set1')
-% 
-% % - for the default centre, one parameter
-% vc = mriq_get_defaults('TR')
-% 
-% % - for the default centre, one set of parameters
-% sc = mriq_get_defaults('cset2')
-% %
-% % in the batch system, use the following syntax
-% % - a centre specific parameter from the 'cset1' set
-% name.param    = @(val)mriq_get_defaults('cset1.param1', val{:});
-
