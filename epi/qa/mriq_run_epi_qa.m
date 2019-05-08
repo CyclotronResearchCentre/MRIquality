@@ -14,24 +14,31 @@ PARAMS.paths.input = fileparts(job.series.EPIseries{1});
 PARAMS.paths.matlab = fileparts(mfilename('fullpath')); % directory containing the present script
 if isempty(job.outdir)
     PARAMS.paths.output = fullfile(PARAMS.paths.input,'stab');
-    if ~exist(fileparts(PARAMS.paths.output),'dir')
-        error('The specified output directory does not exist');
-    end
     if ~exist(PARAMS.paths.output,'dir')
         mkdir(PARAMS.paths.output);
     end
 else
     PARAMS.paths.output = job.outdir{1};
     if ~exist(PARAMS.paths.output,'dir')
-        error('The specified output directory does not exist');
+        fprintf(1,['\nWARNING: %s' ...
+            '\nThe specified output directory does not exist ' ...
+            'and has been automatically created.\n'],PARAMS.paths.output);
+        mkdir(PARAMS.paths.output);
     end
 end
+
 PARAMS.archive = isfield(job.archive,'archON');
 if PARAMS.archive
     PARAMS.paths.archive = job.archive.archON{1};
-    fprintf(1,['\nData will be cleaned up at the end of the processing, including ' ...
+    fprintf(1,['\nINFO: Data will be cleaned up at the end of the processing, including ' ...
         '\noriginal images compression and archiving to the following directory:' ...
         '\n\t%s\n'],PARAMS.paths.archive);
+    if ~exist(PARAMS.paths.archive,'dir')
+        fprintf(1,['\nWARNING: %s' ...
+            '\nThe specified archiving directory does not exist ' ...
+            'and has been automatically created.\n'],PARAMS.paths.archive);
+        mkdir(PARAMS.paths.archive);
+    end
 else
     fprintf(1,'\nData won''t be cleaned up, compressed nor archived.\n');
 end
