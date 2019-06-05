@@ -25,19 +25,21 @@ function mriq_defaults
 %%
 global mriq_def
 
-%========================= EPI STABILITY QA ===============================
+% This very default file
+mriq_def.def_file = {[mfilename('fullpath') '.m']};
+
 % Directory where original data are initially stored (input images)
-mriq_def.epi_qa.paths.input = {'C:\home\github\MRIresults'}; 
+mriq_def.path_input = {fullfile('C:','MRIquality','data')}; 
 
 % Directory where intermediate files are created and stored during
 % processing. These files are deleted after processing if archiving is
 % enabled.
-mriq_def.epi_qa.paths.temp = {'C:\home\github\MRIresults\temp'}; 
+mriq_def.path_tmp = {fullfile('C:','MRIquality','tmp')}; 
 
-% Directory for stability results (tSNR & SNR maps, drift, RDC, etc...)
-mriq_def.epi_qa.paths.stab = {'C:\home\github\MRIresults\stability'}; 
+% Directory for results (stability or else)
+mriq_def.path_output = {fullfile('C:','MRIquality','results')}; 
 
 % Directory for archiving original images 
-mriq_def.epi_qa.paths.arch = {'C:\home\github\MRIresults\archives'}; 
+mriq_def.path_arch = {fullfile('C:','MRIquality','archives')}; 
 
 end
