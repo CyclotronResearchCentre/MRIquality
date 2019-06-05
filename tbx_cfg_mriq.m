@@ -9,8 +9,11 @@ function mriq = tbx_cfg_mriq
 %==========================================================================
 
 if ~isdeployed, addpath(genpath(fileparts(mfilename('fullpath')))); end
+% initialise defaults
+mriq_defaults;
 
 % The following subsections are available:
+% - tbx_scfg_mriq_config: define/customise default parameters
 % - tbx_scfg_mriq_epi: analysis of EPI series, including stability
 %   and SNR parameters (SNR, tSNR, RDC, ...), detection of DWI outliers,
 %   and more...
@@ -34,6 +37,6 @@ mriq.help    = {
     'and will include a number of (as yet unspecified) extensions in ',...
     'future updates. Please report any bugs or problems to e.balteau@uliege.be.']
     }';
-mriq.values  = {tbx_scfg_mriq_epi};% tbx_scfg_mriq_coil};
+mriq.values  = {tbx_scfg_mriq_config tbx_scfg_mriq_epi};% tbx_scfg_mriq_coil};
 end
 
