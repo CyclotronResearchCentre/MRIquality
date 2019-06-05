@@ -22,7 +22,7 @@ gca_gap_v = 2;
 
 % define some hardcoded parameters:
 N_max = 21; % maximal length of rectangular ROI edge
-sect = round([PARAMS.PE_lin/2 PARAMS.RO_col/2 PARAMS.nslices/2]); 
+sect = round([PARAMS.dim(1)/2 PARAMS.dim(2)/2 PARAMS.dim(3)/2]); 
 
 % plot motion in the y-direction (PE)
 subplot(3,3,1);
