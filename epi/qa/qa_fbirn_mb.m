@@ -127,44 +127,51 @@ end
 QA.SFNR = mean(SFNR,2);
 QA.rdc = QA.SFNR(N_max)/QA.SFNR(1);
 
+%==========================================================================
 % Estimate x and y diameter of object from slice
-meanvol = accsum/num_vols;
-
-interp_fact=10;
-
-% figure;
-maxi=max(meanvol(:));
-dia=0;
-for i=1:size(meanvol,3);
-    for j=1:size(meanvol,2);
-        if ~isempty(find(meanvol(:,j,i)>maxi/2));
-            meani=mean(meanvol(PARAMS.x_roi,j,i));
-            interpx=interp(meanvol(:,j,i),interp_fact);
-            n=find(interpx>meani/3);
-            %plot(interpx);hold on;
-            if ((n(end)-n(1))>dia);
-                dia=(n(end)-n(1));
-            end;
-        end
-    end
-end
-QA.x_diam = dia/interp_fact*sqrt(sum((VIM(1).mat*[1 0 0 0]').^2));
-
-dia=0;
-for i=1:size(meanvol,3);
-    for j=1:size(meanvol,1);
-        if ~isempty(find(meanvol(j,:,i)>maxi/2));
-            meani=mean(meanvol(j,PARAMS.y_roi,i));
-            interpy=interp(meanvol(j,:,i),interp_fact);
-            n=find(interpy>meani/2);
-            %plot(interpy);hold on;
-            if ((n(end)-n(1))>dia);
-                dia=(n(end)-n(1));
-            end;
-        end
-    end
-end
-QA.y_diam = dia/interp_fact*sqrt(sum((VIM(1).mat*[1 0 0 0]').^2));
+% NOTE: this does not make sense for in vivo data and might be
+% inappropriate for other types of phantoms (e.g. non-spherical phantom).
+% Therefore commented for now...
+%==========================================================================
+% QA.x_diam = NaN;
+% QA.y_diam = NaN;
+% 
+% meanvol = accsum/num_vols;
+% interp_fact=10;
+% 
+% % figure;
+% maxi=max(meanvol(:));
+% dia=0;
+% for i=1:size(meanvol,3);
+%     for j=1:size(meanvol,2);
+%         if ~isempty(find(meanvol(:,j,i)>maxi/2));
+%             meani=mean(meanvol(PARAMS.x_roi,j,i));
+%             interpx=interp(meanvol(:,j,i),interp_fact);
+%             n=find(interpx>meani/3);
+%             %plot(interpx);hold on;
+%             if ((n(end)-n(1))>dia);
+%                 dia=(n(end)-n(1));
+%             end;
+%         end
+%     end
+% end
+% QA.x_diam = dia/interp_fact*sqrt(sum((VIM(1).mat*[1 0 0 0]').^2));
+% 
+% dia=0;
+% for i=1:size(meanvol,3);
+%     for j=1:size(meanvol,1);
+%         if ~isempty(find(meanvol(j,:,i)>maxi/2));
+%             meani=mean(meanvol(j,PARAMS.y_roi,i));
+%             interpy=interp(meanvol(j,:,i),interp_fact);
+%             n=find(interpy>meani/2);
+%             %plot(interpy);hold on;
+%             if ((n(end)-n(1))>dia);
+%                 dia=(n(end)-n(1));
+%             end;
+%         end
+%     end
+% end
+% QA.y_diam = dia/interp_fact*sqrt(sum((VIM(1).mat*[1 0 0 0]').^2));
 
 % Write results in file
 fid = fopen(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.txt']),'a');
@@ -175,7 +182,7 @@ fprintf(fid,'    Intensity drift = %6.5f (percent)\n', QA.perc_drift);
 fprintf(fid,'    Intensity fluctuation = %6.5f (percent)\n', QA.perc_fluct);
 fprintf(fid,'    tSNR in central ROI: %5.2f\n', QA.SFNR_voxel);
 fprintf(fid,'    RDC = %5.2f\n', QA.rdc);
-fprintf(fid,'    Estimated phantom diameter: %4.2f x %4.2f mm2\n', QA.x_diam, QA.y_diam);
+% fprintf(fid,'    Estimated phantom diameter: %4.2f x %4.2f mm2\n', QA.x_diam, QA.y_diam);
 fclose(fid);
 
 
