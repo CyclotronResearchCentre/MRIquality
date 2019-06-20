@@ -107,10 +107,20 @@ PARAMS.studyID = str2double(get_metadata_val(hdrim{1}, 'StudyID'));
 PARAMS.scanner = deblank(get_metadata_val(hdrim{1},'ManufacturerModelName'));
 PARAMS.resfnam = sprintf('%s_%s_stud%0.4d_ser%0.4d%', PARAMS.scanner, PARAMS.date, PARAMS.studyID, PARAMS.series);
 
-% copy NIFTI files to processing directory (always keep input images
-% untouched, i.e. original NIFTI files must be copied to processing
-% directory, while NIFTI files converted from DICOM are moved to processing
-% directory. NB: copy/move json files as well!
+% Dummy volumes to be discarded (T1 saturation effect)
+PARAMS.dummies = job.procpar.dummies;
+if PARAMS.dummies>size(Ninim,1)
+    fprintf(1,['\nWARNING: The number of dummy volumes exceeds the number ' ...
+            '\nof volumes in the time series. No dummy volume will be discarded.' ...
+            '\n']);
+    PARAMS.dummies = 0;
+end
+Ninim = Ninim(1+PARAMS.dummies:end,:);
+
+% copy NIFTI files to processing directory (always keep
+% input images untouched, i.e. original NIFTI files must be copied to
+% processing directory, while NIFTI files converted from DICOM are moved to
+% processing directory. NB: copy/move json files as well!
 NinimTmp = [];
 for cf = 1:size(Ninim,1)
     [~,NAME,EXT] = fileparts(Ninim(cf,:));

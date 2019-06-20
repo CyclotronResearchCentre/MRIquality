@@ -16,8 +16,7 @@ function epiqa = tbx_scfg_mriq_epi_qa
 EPIseries           = cfg_files;
 EPIseries.tag       = 'EPIseries';
 EPIseries.name      = 'EPI time series';
-EPIseries.help      = {['Select EPI images (either DICOM or nifti format), ' ...
-    'discarding the first few volumes to avoid T1 saturation effect.']};
+EPIseries.help      = {'Select EPI images (either DICOM or nifti format)'};
 EPIseries.dir       = mriq_get_defaults('path_input');
 EPIseries.filter    = '^*\.(IMA|dcm|nii)$';
 EPIseries.ufilter   = '.*';
@@ -73,6 +72,21 @@ archive.labels = {
                'Disabled'}';
 archive.values = {1 0};
 archive.val    = {1};
+
+
+
+%==========================================================================
+% Number of volumes to discard
+%==========================================================================
+dummies         = cfg_entry;
+dummies.tag     = 'dummies';
+dummies.name    = 'Dummies';
+dummies.help    = {'Enter the number of dummy volumes. ', ...
+    ['To discard the first few volumes of the time series, ' ...
+    'and avoid T1 saturation effects impacting the QA results.']};
+dummies.strtype = 'i';
+dummies.num     = [1 1];
+dummies.val     = {0};
 
 %==========================================================================
 % Signal plane
@@ -143,7 +157,7 @@ procpar.name      = 'Processing parameters';
 procpar.help      = {['List of input parameters that can be filled in by ' ...
     'the user. Note that not all the parameters need to be specified. Read ' ...
     'each parameter''s help for details.']};
-procpar.val       = {sigplane noiplane roisize comment};
+procpar.val       = {dummies sigplane noiplane roisize comment};
 
 
 %==========================================================================
