@@ -8,6 +8,14 @@ function mriq = tbx_cfg_mriq
 % Written by Evelyne Balteau, Cyclotron Research Centre, June 2017
 %==========================================================================
 
+if ~isdeployed, 
+    mriQpath = fileparts(mfilename('fullpath'));
+    addpath(mriQpath);
+    addpath(genpath(fullfile(mriQpath, 'config')));
+    addpath(genpath(fullfile(mriQpath, 'epi')));
+    addpath(genpath(fullfile(mriQpath, 'coil')));
+end
+
 if ~isdeployed, addpath(genpath(fileparts(mfilename('fullpath')))); end
 % initialise defaults
 mriq_defaults;
