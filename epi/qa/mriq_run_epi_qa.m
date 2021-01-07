@@ -98,7 +98,7 @@ PARAMS.comment = job.procpar.comment;
 
 % retrieve values from headers
 hdrim = get_metadata(Ninim(1,:));
-if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end
+% if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end
 
 % define and create temporary working directory
 PARAMS.date = datestr(get_metadata_val(hdrim{1}, 'StudyDate'),'yyyymmdd');
@@ -166,14 +166,14 @@ PARAMS.SAR = tmp{1};
 V = spm_vol(Ninim(1,:));
 PARAMS.dim = V.dim;
 
-PARAMS.MB = get_metadata_val(hdrim{1},'lMultiBandFactor');
-PARAMS.MB = input(sprintf('\nINPUT REQUIRED - Enter MB factor (%d): ', PARAMS.MB));
+PARAMS.MB = get_metadata_val(hdrim{1},'MultiBandFactor');
+% PARAMS.MB = input(sprintf('\nINPUT REQUIRED - Enter MB factor (%d): ', PARAMS.MB));
     
 PARAMS.PAT = 1;
 try 
-    PARAMS.PAT = get_metadata_val(hdrim{1},'lAccelFactPE')*get_metadata_val(hdrim{1},'lAccelFact3D');
+    PARAMS.PAT = get_metadata_val(hdrim{1},'AccelFactorPE')*get_metadata_val(hdrim{1},'AccelFactor3D');
 end
-PARAMS.PAT = input(sprintf('\nINPUT REQUIRED - Enter PAT factor (PEx3D = %d): ', PARAMS.PAT));
+% PARAMS.PAT = input(sprintf('\nINPUT REQUIRED - Enter PAT factor (PEx3D = %d): ', PARAMS.PAT));
 
 PARAMS.coils = get_metadata_val(hdrim{1},'ImaCoilString');
 if isempty(PARAMS.coils)
@@ -193,7 +193,7 @@ try
         end
     end
 end
-PARAMS.ncha = input(sprintf('\nINPUT REQUIRED - Enter number of coil elements (%d): ', PARAMS.ncha));
+% PARAMS.ncha = input(sprintf('\nINPUT REQUIRED - Enter number of coil elements (%d): ', PARAMS.ncha));
 
 PARAMS.nvols = size(Ninim,1);
 PARAMS.scfac = 1;
