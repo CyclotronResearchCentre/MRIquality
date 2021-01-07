@@ -67,6 +67,14 @@ if ~exist(PARAMS.paths.process,'dir')
     end
 end
 
+
+% The SPM Graphics window must be available
+fg = spm_figure('FindWin','Graphics');
+if isempty(fg)
+    spm_figure('Create','Graphics','Graphics','on')
+end
+
+
 % detect whether we have DICOM or NIFTI input files
 Ninim = char(job.series.EPIseries);
 Ninno = char(job.series.NOISEseries);
@@ -127,10 +135,10 @@ for cf = 1:size(Ninim,1)
     NinimTmp = [NinimTmp; fullfile(PARAMS.paths.process, [NAME EXT])]; %#ok<AGROW>
     switch PARAMS.intype
         case 'DICOM'
-            movefile(Ninim(cf,:),NinimTmp(cf,:));
+            try movefile(Ninim(cf,:),NinimTmp(cf,:)); end
             try movefile([spm_str_manip(Ninim(cf,:),'s') '.json'],[spm_str_manip(NinimTmp(cf,:),'s') '.json']); end %#ok<*TRYNC>
         case 'NIFTI'
-            copyfile(Ninim(cf,:),NinimTmp(cf,:));
+            try copyfile(Ninim(cf,:),NinimTmp(cf,:)); end
             try copyfile([spm_str_manip(Ninim(cf,:),'s') '.json'],[spm_str_manip(NinimTmp(cf,:),'s') '.json']); end
     end
 end
@@ -141,10 +149,10 @@ if ~isempty(Ninno)
         NinnoTmp = [NinnoTmp; fullfile(PARAMS.paths.process, [NAME EXT])]; %#ok<AGROW>
         switch PARAMS.intype
             case 'DICOM'
-                movefile(Ninno(cf,:),NinnoTmp(cf,:));
+                try movefile(Ninno(cf,:),NinnoTmp(cf,:)); end
                 try movefile([spm_str_manip(Ninno(cf,:),'s') '.json'],[spm_str_manip(NinnoTmp(cf,:),'s') '.json']); end
             case 'NIFTI'
-                copyfile(Ninno(cf,:),NinnoTmp(cf,:));
+                try copyfile(Ninno(cf,:),NinnoTmp(cf,:)); end 
                 try copyfile([spm_str_manip(Ninno(cf,:),'s') '.json'],[spm_str_manip(NinnoTmp(cf,:),'s') '.json']); end
         end
     end
