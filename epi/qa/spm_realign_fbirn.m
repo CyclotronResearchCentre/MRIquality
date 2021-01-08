@@ -155,6 +155,19 @@ end
 %-Save results
 %==========================================================================
 
+% modification for MRIquality toolbox: we need the motion parameters to be
+% output by the function for further usage in the EPI QA pipeline. 
+for s=1:numel(P)
+    V = P{s};
+    n = length(V);
+    Params = zeros(n,6);
+    for j=1:n
+        qq     = spm_imatrix(V(j).mat/V(1).mat);
+        Params(j,:) = qq(1:6);
+    end
+end
+
+
 if ~nargout
     for s=1:numel(P)
         %-Save parameters as rp_*.txt files
@@ -171,9 +184,7 @@ end
 
 %-Display translation and rotation parameters
 %--------------------------------------------------------------------------
-% mriq modification %
-% if flags.graphics, plot_parameters(P); end
-Params = plot_parameters(P);
+if flags.graphics, plot_parameters(P); end
 
 if numel(P)==1, P = P{1}; end
 
