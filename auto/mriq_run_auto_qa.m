@@ -1,4 +1,4 @@
-function mriq_run_auto_qa(dicomdir)
+function out = mriq_run_auto_qa(dicomdir)
 
 % Main script for running automated QA. The argument is the directory
 % containing the DICOM (*.IMA) images as transferred after QA acquisition.
@@ -165,73 +165,6 @@ if ~isempty(dicomfilelist)
         end
     end
 end
-%     json = struct('extended',false,'separate',true); 
-%     out = spm_dicom_convert(hdr,'all','flat','nii',PARAMS.paths.input,json);
-%     niifilelist = char(out.files);
-
-    % 2) sort out files: series must be parsed, noise images must be
-    %    identified and linked to the image series they belong. By default,
-    %    a noise series will be acquired directly after the image series,
-    %    but we check parameters are matching before linking the noise and
-    %    image series.
-    %    2.1) initialise the list
-%     cf = 1;
-%     serieslist{1} = struct('item',1);,'date','','studyid','','sernum','','scanner','','acqparams','');
-%     
-%     while cf<legnth 
-%     % retrieve values from headers
-% hdrim = get_metadata(Ninim(1,:));
-% % if ~isempty(Ninno);hdrno = get_metadata(Ninno(1,:));end
-% 
-% % define and create temporary working directory
-% PARAMS.date = datestr(get_metadata_val(hdrim{1}, 'StudyDate'),'yyyymmdd');
-% PARAMS.series = get_metadata_val(hdrim{1}, 'SeriesNumber');
-% PARAMS.studyID = str2double(get_metadata_val(hdrim{1}, 'StudyID'));
-% PARAMS.scanner = deblank(get_metadata_val(hdrim{1},'ManufacturerModelName'));
-% PARAMS.resfnam = sprintf('%s_%s_stud%0.4d_ser%0.4d%', PARAMS.scanner, PARAMS.date, PARAMS.studyID, PARAMS.series);
-% PARAMS.TR = get_metadata_val(hdrim{1}, 'RepetitionTime');
-% tmp = get_metadata_val(hdrim{1},'ReferenceAmplitude');
-% PARAMS.ref_ampl = tmp{1};
-% PARAMS.rf_freq = get_metadata_val(hdrim{1},'Frequency');
-% PARAMS.field_strength = get_metadata_val(hdrim{1},'FieldStrength');
-% tmp = get_metadata_val(hdrim{1},'SAR');
-% PARAMS.SAR = tmp{1};
-% V = spm_vol(Ninim(1,:));
-% PARAMS.dim = V.dim;
-% 
-% PARAMS.MB = get_metadata_val(hdrim{1},'lMultiBandFactor');
-% PARAMS.MB = input(sprintf('\nINPUT REQUIRED - Enter MB factor (%d): ', PARAMS.MB));
-%     
-% PARAMS.PAT = 1;
-% try 
-%     PARAMS.PAT = get_metadata_val(hdrim{1},'lAccelFactPE')*get_metadata_val(hdrim{1},'lAccelFact3D');
-% end
-% PARAMS.PAT = input(sprintf('\nINPUT REQUIRED - Enter PAT factor (PEx3D = %d): ', PARAMS.PAT));
-% 
-% PARAMS.coils = get_metadata_val(hdrim{1},'ImaCoilString');
-% if isempty(PARAMS.coils)
-% %     PARAMS.coils = input('\nINPUT REQUIRED - Enter name of Rx coil: ','s');
-%     PARAMS.coils = 'Unknown';
-% end
-% 
-% PARAMS.ncha = 0;
-% try
-%     tmp = get_metadata_val(hdrim{1},'aRxCoilSelectData');
-%     tmp = tmp{1};
-%     for ccha = 1:length(tmp(1).asList);
-%         if isfield(tmp(1).asList(ccha),'lElementSelected')
-%             if (tmp(1).asList(ccha).lElementSelected == 1)
-%                 PARAMS.ncha = PARAMS.ncha+1;
-%             end
-%         end
-%     end
-% end
-% PARAMS.ncha = input(sprintf('\nINPUT REQUIRED - Enter number of coil elements (%d): ', PARAMS.ncha));
-% 
-% PARAMS.nvols = size(Ninim,1);
-    
-
-% mriq_run_epi_qa_wrapper(EPIseries, NOISEseries, flags);
 
 end
 
@@ -262,7 +195,14 @@ matlabbatch{cb}.spm.tools.mriq.epi.epiqa.procpar.roisize = 21;
 matlabbatch{cb}.spm.tools.mriq.epi.epiqa.procpar.comment = 'Automated QA';
 
 spm ('defaults', 'fmri');      
-spm_jobman('initcfg');
+% spm_jobman('initcfg'); NOTE 20210118 - init jobman must have been run
+% beforehand or it'll be run here anyway. The consequence of running it
+% here is that the defaults are set to the spm/config directory :/... To be
+% tested: run spm_jobman('initcfg') at the beginning of the
+% mriq_run_auto_qa script if "~deployed"... or in mriq_run_config... To be
+% continued... The problem does not occur if mriq_run_auto_qa run from
+% Batch GUI (not currently implemented) since in that case SPM is
+% deployed...
 out = spm_jobman('run', matlabbatch);
 
 end

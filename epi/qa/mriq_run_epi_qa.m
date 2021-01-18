@@ -1,4 +1,4 @@
-function mriq_run_epi_qa(job)
+function out = mriq_run_epi_qa(job)
 %==========================================================================
 % USAGE: mriq_run_epi_qa(job)
 % QA tools based on and modified from the FBIRN QA and others...
@@ -243,7 +243,7 @@ RES.SPAT = [];
 rNinim = Ninim;
 if size(Ninim,1)>1
     % REALIGN
-    flags1 = struct('quality',1,'fwhm',5,'sep',4,'interp',2,'wrap',[0 0 0],'rtm',0,'PW','','graphics',1,'lkp',2);
+    flags1 = struct('quality',1,'fwhm',5,'sep',4,'interp',2,'wrap',[0 0 0],'rtm',0,'PW','','lkp',2);
     [rNinim, Params] = spm_realign_fbirn(Ninim,flags1);
     
     % RESLICE
@@ -316,6 +316,9 @@ spm_jsonwrite(fullfile(PARAMS.paths.output, [PARAMS.resfnam '.json']),struct('PA
 clear matlabbatch;
 matlabbatch{1}.spm.tools.mriq.epi.epiqa = job;
 save(fullfile(PARAMS.paths.output, [PARAMS.resfnam '_batch.mat']), 'matlabbatch');
+
+% define outputs - TO BE IMPLEMENTED
+out = [];
 
 if PARAMS.archive
     % tidy up a bit...
