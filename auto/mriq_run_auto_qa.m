@@ -1,15 +1,18 @@
-function out = mriq_run_auto_qa(dicomdir)
+function out = mriq_run_auto_qa(configfile)
 
-% Main script for running automated QA. The argument is the directory
-% containing the DICOM (*.IMA) images as transferred after QA acquisition.
-% If not provided, it'll retrieve the default path from the default
-% parameter file (see below).
+% Main script for running automated QA. The argument is the defaults file
+% containing the input directory (containing the DICOM (*.IMA) images as
+% transferred after QA acquisition), the tmp, results and archiving
+% directories to run the automated QA...
 
-% the main directory where data arrive
 if (nargin==0)
-    dicomdir = 'W:\inpQA'; % for current development ant testing... eb 10/12/2020
-    % dicomdir = cell2mat(mriq_get_defaults('path_input'));
+    configfile = 'D:\home\git\MRIquality\config\mriq_defaults_prisma_autoqa.m';
 end
+% PARAMS.paths.autoinput = 'W:\testSONIA'; % for current development ant testing... eb 10/12/2020
+% PARAMS.paths.autoinput = 'W:\inpQA'; % for current development ant testing... eb 10/12/2020
+run(configfile);
+PARAMS.defaults = cell2mat(mriq_get_defaults('def_file'));
+PARAMS.paths.autoinput = cell2mat(mriq_get_defaults('path_input'));
 
 % default for DICOM to NIfTI conversion
 json = struct('extended',false,'separate',true);
@@ -36,8 +39,8 @@ if ~exist(PARAMS.paths.process,'dir')
     end
 end
 
-% check any new files in dicomdir
-dicomfilelist = spm_select('FPList',dicomdir,'^.*\.IMA$');
+% check any new files in PARAMS.paths.autoinput
+dicomfilelist = spm_select('FPList',PARAMS.paths.autoinput,'^.*\.IMA$');
 
 % if not empty...
 if ~isempty(dicomfilelist)
@@ -79,7 +82,7 @@ if ~isempty(dicomfilelist)
             dicomfilelist = spm_select('FPList',serieslist(cser,:),'^.*\.IMA$');
             % convert into NIfTI
             hdr = spm_dicom_headers(dicomfilelist);
-            niifilelist{cser} = spm_dicom_convert(hdr,'all','flat','nii',dirlist(cdir,:),json); %#ok<*AGROW>
+            niifilelist{cser} = spm_dicom_convert(hdr,'all','flat','nii',serieslist(cser,:),json); %#ok<*AGROW>
             % gather header information for the current series
             niifilelist{cser}.nnii = length(niifilelist{cser}.files);
             niifilelist{cser}.sernum = get_metadata_val(niifilelist{cser}.files{1},'SeriesNumber');
@@ -138,7 +141,17 @@ if ~isempty(dicomfilelist)
                         NOISEok = true;
                         cfield = 1;
                         while NOISEok && cfield<length(fieldlist)+1
-                            NOISEok = all(niifilelist{cNOISEser}.acqparams.(fieldlist{cfield}) == niifilelist{cEPIser}.acqparams.(fieldlist{cfield}));
+                            if ischar(niifilelist{cNOISEser}.acqparams.(fieldlist{cfield}))
+                                NOISEok = strcmp(niifilelist{cNOISEser}.acqparams.(fieldlist{cfield}), niifilelist{cEPIser}.acqparams.(fieldlist{cfield}));
+                            else
+                                % bit of a hack to avoid detection of
+                                % "false positive" in terms of parameter
+                                % differences... Simply assumes that float
+                                % numbers should be identical up to 4th
+                                % decimal number and any smaller difference
+                                % can be considered as non relevant.
+                                NOISEok = all(round(niifilelist{cNOISEser}.acqparams.(fieldlist{cfield})*10000) == round(niifilelist{cEPIser}.acqparams.(fieldlist{cfield})*10000));
+                            end
                             if ~NOISEok
                                 fprintf(1,'\nEPIseries = #%d - NOISEseries = #%d', niifilelist{cEPIser}.sernum, niifilelist{cNOISEser}.sernum);
                                 fprintf(1,'\n DO NOT MATCH because of parameter %s:',fieldlist{cfield});
@@ -160,9 +173,11 @@ if ~isempty(dicomfilelist)
                 else
                     fprintf(1,'\nEmpty NOISEseries...\n');
                 end
-                out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries);
+                out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries, configfile);
             end
         end
+        % 5.4 Cleanup: remove the processed directory (one whole session)
+        rmdir(dirlist(cdir,:),'s');
     end
 end
 
@@ -171,7 +186,7 @@ end
 %=========================================================================%
 % WRAPPER TO BE CALLED TO RUN THE QA OVER PRESELECTED EPI & NOISE DATA
 %=========================================================================%
-function out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries)
+function out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries, configfile)
 
 % NOTE: we assume MRIQ_CONFIG has been run beforehand or that standard
 % defaults are all right. This includes paths to various directories (data,
@@ -185,6 +200,12 @@ function out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries)
 
 clear matlabbatch;
 cb = 1;
+matlabbatch{cb}.spm.tools.mriq.mriq_config.mriq_setdef = {configfile};
+matlabbatch{cb}.spm.tools.mriq.mriq_config.mriq_manualdef.path_input = {''};
+matlabbatch{cb}.spm.tools.mriq.mriq_config.mriq_manualdef.path_tmp = {''};
+matlabbatch{cb}.spm.tools.mriq.mriq_config.mriq_manualdef.path_output = {''};
+matlabbatch{cb}.spm.tools.mriq.mriq_config.mriq_manualdef.path_arch = {''};
+cb = 2;
 matlabbatch{cb}.spm.tools.mriq.epi.epiqa.series.EPIseries = EPIseries;
 matlabbatch{cb}.spm.tools.mriq.epi.epiqa.series.NOISEseries = NOISEseries;
 matlabbatch{cb}.spm.tools.mriq.epi.epiqa.archive = 1;
