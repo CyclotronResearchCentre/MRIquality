@@ -85,10 +85,15 @@ if ~isempty(noisefiles)
     noisy_vox = noisy_vox(noisy_vox~=0); % to get rid of the bunch of zero values from edges of volume in Siemens images
     
     % plot histogram
+    % get NOISE window or create it if not existing yet:
+    fNOI = spm_figure('GetWin','NOISE');
+    % clear it
+    spm_figure('Clear',fNOI);
+    % define default parameters and plot
     maxi = max(noisy_vox(:));
     x = 0:round(maxi); % siemens reconstruction has integer values only
     n = hist(noisy_vox(:),x);
-    figure('color',[1 1 1],'position',[50 50 1000 800]);
+    set(fNOI,'color',[1 1 1],'position',[50 50 1000 800]);
     bar(x,n);hold on;
     
     % histogram fitting with central Chi distribution
@@ -118,8 +123,8 @@ if ~isempty(noisefiles)
     legend('data','fit');
     
     % save figure
-    set(gcf,'PaperPositionMode','auto')
-    print(gcf,'-dpng',fullfile(PARAMS.paths.output,[PARAMS.resfnam '_NOISE_DISTRIB.png']));
+    set(fNOI,'PaperPositionMode','auto')
+    print(fNOI,'-dpng',fullfile(PARAMS.paths.output,[PARAMS.resfnam '_NOISE_DISTRIB.png']));
     
     % save results in structure SNR
     SNR.sigma_noRF = par3(1)/scfac;
