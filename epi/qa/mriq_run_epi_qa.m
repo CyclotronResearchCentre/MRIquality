@@ -68,7 +68,8 @@ if ~exist(PARAMS.paths.process,'dir')
 end
 
 
-% The SPM Graphics window must be available
+% The SPM Graphics window must be available (or maybe not, but this is
+% doing no harm... will be used to display the realign results)...
 fg = spm_figure('FindWin','Graphics');
 if isempty(fg)
     spm_figure('Create','Graphics','Graphics','on')
