@@ -29,17 +29,21 @@ global mriq_def
 mriq_def.def_file = {[mfilename('fullpath') '.m']};
 
 % Directory where original data are initially stored (input images)
-mriq_def.path_input = {fullfile('C:','MRIquality','data')}; 
+% mriq_def.path_input = {fullfile('C:','MRIquality','data')}; 
+mriq_def.path_input = {fullfile(pwd,'MRIquality','data')}; 
 
 % Directory where intermediate files are created and stored during
 % processing. These files are deleted after processing if archiving is
 % enabled.
-mriq_def.path_tmp = {fullfile('C:','MRIquality','tmp')}; 
+% mriq_def.path_tmp = {fullfile('C:','MRIquality','tmp')}; 
+mriq_def.path_tmp = {fullfile(pwd,'MRIquality','tmp')}; 
 
 % Directory for results (stability or else)
-mriq_def.path_output = {fullfile('C:','MRIquality','results')}; 
+% mriq_def.path_output = {fullfile('C:','MRIquality','results')}; 
+mriq_def.path_output = {fullfile(pwd,'MRIquality','results')}; 
 
 % Directory for archiving original images 
-mriq_def.path_arch = {fullfile('C:','MRIquality','archives')}; 
+% mriq_def.path_arch = {fullfile('C:','MRIquality','archives')}; 
+mriq_def.path_arch = {fullfile(pwd,'MRIquality','archives')}; 
 
 end
