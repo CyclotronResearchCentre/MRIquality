@@ -158,7 +158,7 @@ set(gca,'XLim',[1 N_max]);
 gentitl = [PARAMS.date ' (' PARAMS.comment ')'];
 A = annotation(fRES,'textbox',[0.0 0.95 1.0 0.05],'String',gentitl);
 set(A,'LineStyle','none','HorizontalAlignment','center')
-set(A,'FontName',def_fontname,'fontsize',12);
+set(A,'FontName',def_fontname,'fontsize',12,'backgroundcolor',[1 1 1]);
 
 % save summary figure
 set(fRES,'PaperPositionMode','auto')
