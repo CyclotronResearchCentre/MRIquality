@@ -6,10 +6,8 @@ function out = mriq_run_auto_qa(configfile)
 % directories to run the automated QA...
 
 if (nargin==0)
-    configfile = 'D:\home\git\MRIquality\config\mriq_defaults_prisma_autoqa.m';
+    configfile = fullfile(fileparts(mfilename('fullpath')),'..','config','mriq_defaults_prisma_autoqa.m');
 end
-% PARAMS.paths.autoinput = 'W:\testSONIA'; % for current development ant testing... eb 10/12/2020
-% PARAMS.paths.autoinput = 'W:\inpQA'; % for current development ant testing... eb 10/12/2020
 run(configfile);
 PARAMS.defaults = cell2mat(mriq_get_defaults('def_file'));
 PARAMS.paths.autoinput = cell2mat(mriq_get_defaults('path_input'));
@@ -37,21 +35,48 @@ if ~exist(PARAMS.paths.process,'dir')
             '\nPlease use the Configure module to define the temporary directory.' ...
             '\n'],PARAMS.paths.process);
     end
+else
+    if length(dir(PARAMS.paths.process))>2
+        fprintf(1,['\nWARNING: %s' ...
+            '\nThe specified temporary directory for data processing ALREADY EXISTS and IS NOT EMPTY.' ...
+            '\nThis could interfere with the current processing. Please check!' ...
+            '\n'],PARAMS.paths.process);
+    else
+        fprintf(1,['\nINFO: %s' ...
+            '\nThe specified temporary directory for data processing ALREADY EXISTS and IS EMPTY.' ...
+            '\n'],PARAMS.paths.process);
+    end
 end
 
 % check any new files in PARAMS.paths.autoinput
-dicomfilelist = spm_select('FPList',PARAMS.paths.autoinput,'^.*\.IMA$');
+% dicominputfilelist = spm_select('FPList',PARAMS.paths.autoinput,'^.*\.IMA|SR$');
+% dicominputfilelist = spm_select('FPList',PARAMS.paths.autoinput,'^.*\.IMA$');
+dicominputfilelist = spm_select('FPList',PARAMS.paths.autoinput);
+
+% Display general setup for this run:
+fprintf(1,['\nINFO: directory setup for the current autoQA run' ...
+    '\n\t- INPUT: %s (%d files)' ...
+    '\n\t- PROCESS: %s\n'], PARAMS.paths.autoinput, size(dicominputfilelist,1), PARAMS.paths.process);
 
 % if not empty...
-if ~isempty(dicomfilelist)
+if ~isempty(dicominputfilelist)
     % 0) copy all files to tmp directory
-    for cf = 1:size(dicomfilelist,1)
-        copyfile(dicomfilelist(cf,:),PARAMS.paths.process); % must be changed to MOVE in final version
+    % TEMPORARY MEASURE: we move all new files to W:\safe and then select
+    % the IMA files to be processed and move them to the choosen \tmp
+    % directory for processing. The safe directory can be deleted manually
+    % when it looks safe to do so... This intermediate step is to be
+    % removed in final version running on the server.
+    for cf = 1:size(dicominputfilelist,1)
+        movefile(dicominputfilelist(cf,:),'W:\safe'); 
     end
-    dicomfilelist = spm_select('FPList',PARAMS.paths.process,'^.*\.IMA$');
+    dicominputfilelist = spm_select('FPList',PARAMS.paths.autoinput,'^.*\.IMA$');
+    for cf = 1:size(dicominputfilelist,1)
+        movefile(dicominputfilelist(cf,:),PARAMS.paths.process); 
+    end
+    dicomtmpfilelist = spm_select('FPList',PARAMS.paths.process,'^.*\.IMA$');
 
     % 1) read headers 
-    hdr = spm_dicom_headers(dicomfilelist);
+    hdr = spm_dicom_headers(dicomtmpfilelist);
     
     % 2) since EPI and NOISE data to be processed together must have been
     % acquired during the same session (i.e. same study date and ID), we
@@ -79,48 +104,58 @@ if ~isempty(dicomfilelist)
         serieslist = spm_select('FPList', dirlist(cdir,:),'dir');
         % 5.2) DICOM2NII convert each series and retrieve acq params
         for cser = 1:size(serieslist,1)
-            dicomfilelist = spm_select('FPList',serieslist(cser,:),'^.*\.IMA$');
+            dicomtmpfilelist = spm_select('FPList',serieslist(cser,:),'^.*\.IMA$');
             % convert into NIfTI
-            hdr = spm_dicom_headers(dicomfilelist);
+            hdr = spm_dicom_headers(dicomtmpfilelist);
             niifilelist{cser} = spm_dicom_convert(hdr,'all','flat','nii',serieslist(cser,:),json); %#ok<*AGROW>
-            % gather header information for the current series
-            niifilelist{cser}.nnii = length(niifilelist{cser}.files);
-            niifilelist{cser}.sernum = get_metadata_val(niifilelist{cser}.files{1},'SeriesNumber');
-            niifilelist{cser}.filelist = [];
-            niifilelist{cser}.refampl = get_metadata_val(niifilelist{cser}.files{1},'flReferenceAmplitude');
-            if isempty(niifilelist{cser}.refampl)
-                niifilelist{cser}.refampl = 0.0;
+            if isempty(niifilelist{cser}.files{1})
+                % make sure processing does not go any further for PHYSIO
+                % data by setting refampl to arbitrary (non-sero) value and
+                % ScanningSequence to PHYSIO (anything difference from EP
+                % would do)...
+                niifilelist{cser}.acqparams.ImageType = 'PHYSIO';
+                niifilelist{cser}.refampl = 200.0; % arbitrary value
+                niifilelist{cser}.acqparams.ScanningSequence = 'PHYSIO';
+            else
+                % gather header information for the current series
+                niifilelist{cser}.nnii = length(niifilelist{cser}.files);
+                niifilelist{cser}.sernum = get_metadata_val(niifilelist{cser}.files{1},'SeriesNumber');
+                niifilelist{cser}.filelist = [];
+                niifilelist{cser}.refampl = get_metadata_val(niifilelist{cser}.files{1},'flReferenceAmplitude');
+                if isempty(niifilelist{cser}.refampl)
+                    niifilelist{cser}.refampl = 0.0;
+                end
+                tmp = get_metadata_val(niifilelist{cser}.files{1},'ImageType'); % 'ORIGINAL\PRIMARY\M\MB\ND\MOSAIC '
+                niifilelist{cser}.acqparams.ImageType = deblank(tmp{1});
+                niifilelist{cser}.acqparams.ScanningSequence = deblank(get_metadata_val(niifilelist{cser}.files{1},'ScanningSequence')); % 'EP'
+                niifilelist{cser}.acqparams.SequenceVariant = deblank(get_metadata_val(niifilelist{cser}.files{1},'SequenceVariant')); % 'SK\SS '
+                niifilelist{cser}.acqparams.ScanOptions = deblank(get_metadata_val(niifilelist{cser}.files{1},'ScanOptions')); % 'FS'
+                niifilelist{cser}.acqparams.MRAcquisitionType = deblank(get_metadata_val(niifilelist{cser}.files{1},'MRAcquisitionType')); % '2D'
+                niifilelist{cser}.acqparams.SequenceName = deblank(get_metadata_val(niifilelist{cser}.files{1},'SequenceName')); % 'epfid2d1_72 '
+                niifilelist{cser}.acqparams.SliceThickness = get_metadata_val(niifilelist{cser}.files{1},'SliceThickness'); % 3
+                niifilelist{cser}.acqparams.RepetitionTime = get_metadata_val(niifilelist{cser}.files{1},'RepetitionTime'); % 1170
+                niifilelist{cser}.acqparams.EchoTime = get_metadata_val(niifilelist{cser}.files{1},'EchoTime'); % 30
+                niifilelist{cser}.acqparams.ImagingFrequency = 0.001*round(1000*get_metadata_val(niifilelist{cser}.files{1},'ImagingFrequency')); % 123.2542
+                niifilelist{cser}.acqparams.SpacingBetweenSlices = get_metadata_val(niifilelist{cser}.files{1},'SpacingBetweenSlices'); % 3.7500
+                niifilelist{cser}.acqparams.NumberOfPhaseEncodingSteps = get_metadata_val(niifilelist{cser}.files{1},'NumberOfPhaseEncodingSteps'); % 72
+                tmp = get_metadata_val(niifilelist{cser}.files{1},'EchoTrainLength'); % 72
+                niifilelist{cser}.acqparams.EchoTrainLength = tmp{1};
+                niifilelist{cser}.acqparams.PercentSampling = get_metadata_val(niifilelist{cser}.files{1},'PercentSampling'); % 100
+                niifilelist{cser}.acqparams.PercentPhaseFieldOfView = get_metadata_val(niifilelist{cser}.files{1},'PercentPhaseFieldOfView'); % 100
+                niifilelist{cser}.acqparams.PixelBandwidth = get_metadata_val(niifilelist{cser}.files{1},'PixelBandwidth'); % 2570
+                niifilelist{cser}.acqparams.DeviceSerialNumber = deblank(get_metadata_val(niifilelist{cser}.files{1},'DeviceSerialNumber')); % '66021 '
+                tmp = get_metadata_val(niifilelist{cser}.files{1},'AcquisitionMatrix'); % [72 0 0 72]
+                niifilelist{cser}.acqparams.AcquisitionMatrix = tmp{1};
+                niifilelist{cser}.acqparams.InPlanePhaseEncodingDirection = deblank(get_metadata_val(niifilelist{cser}.files{1},'InPlanePhaseEncodingDirection')); % 'COL '
+                niifilelist{cser}.acqparams.FlipAngle = get_metadata_val(niifilelist{cser}.files{1},'FlipAngle'); % 65
+                niifilelist{cser}.acqparams.ImagePositionPatient = get_metadata_val(niifilelist{cser}.files{1},'ImagePositionPatient'); % [3x1 double]
+                niifilelist{cser}.acqparams.ImageOrientationPatient = get_metadata_val(niifilelist{cser}.files{1},'ImageOrientationPatient'); % [6x1 double]
+                niifilelist{cser}.acqparams.ImageComments = deblank(get_metadata_val(niifilelist{cser}.files{1},'ImageComments')); % 'Unaliased MB2/PE2 '
+                tmp = get_metadata_val(niifilelist{cser}.files{1},'CoilString');
+                niifilelist{cser}.acqparams.CoilString = deblank(tmp{1});
+                niifilelist{cser}.acqparams.AccelFactorPE = get_metadata_val(niifilelist{cser}.files{1},'AccelFactorPE');
+                niifilelist{cser}.acqparams.MultiBandFactor = get_metadata_val(niifilelist{cser}.files{1},'MultiBandFactor');
             end
-            tmp = get_metadata_val(niifilelist{cser}.files{1},'ImageType'); % 'ORIGINAL\PRIMARY\M\MB\ND\MOSAIC '
-            niifilelist{cser}.acqparams.ImageType = deblank(tmp{1});
-            niifilelist{cser}.acqparams.ScanningSequence = deblank(get_metadata_val(niifilelist{cser}.files{1},'ScanningSequence')); % 'EP'
-            niifilelist{cser}.acqparams.SequenceVariant = deblank(get_metadata_val(niifilelist{cser}.files{1},'SequenceVariant')); % 'SK\SS '
-            niifilelist{cser}.acqparams.ScanOptions = deblank(get_metadata_val(niifilelist{cser}.files{1},'ScanOptions')); % 'FS'
-            niifilelist{cser}.acqparams.MRAcquisitionType = deblank(get_metadata_val(niifilelist{cser}.files{1},'MRAcquisitionType')); % '2D'
-            niifilelist{cser}.acqparams.SequenceName = deblank(get_metadata_val(niifilelist{cser}.files{1},'SequenceName')); % 'epfid2d1_72 '
-            niifilelist{cser}.acqparams.SliceThickness = get_metadata_val(niifilelist{cser}.files{1},'SliceThickness'); % 3
-            niifilelist{cser}.acqparams.RepetitionTime = get_metadata_val(niifilelist{cser}.files{1},'RepetitionTime'); % 1170
-            niifilelist{cser}.acqparams.EchoTime = get_metadata_val(niifilelist{cser}.files{1},'EchoTime'); % 30
-            niifilelist{cser}.acqparams.ImagingFrequency = 0.001*round(1000*get_metadata_val(niifilelist{cser}.files{1},'ImagingFrequency')); % 123.2542
-            niifilelist{cser}.acqparams.SpacingBetweenSlices = get_metadata_val(niifilelist{cser}.files{1},'SpacingBetweenSlices'); % 3.7500
-            niifilelist{cser}.acqparams.NumberOfPhaseEncodingSteps = get_metadata_val(niifilelist{cser}.files{1},'NumberOfPhaseEncodingSteps'); % 72
-            tmp = get_metadata_val(niifilelist{cser}.files{1},'EchoTrainLength'); % 72
-            niifilelist{cser}.acqparams.EchoTrainLength = tmp{1};
-            niifilelist{cser}.acqparams.PercentSampling = get_metadata_val(niifilelist{cser}.files{1},'PercentSampling'); % 100
-            niifilelist{cser}.acqparams.PercentPhaseFieldOfView = get_metadata_val(niifilelist{cser}.files{1},'PercentPhaseFieldOfView'); % 100
-            niifilelist{cser}.acqparams.PixelBandwidth = get_metadata_val(niifilelist{cser}.files{1},'PixelBandwidth'); % 2570
-            niifilelist{cser}.acqparams.DeviceSerialNumber = deblank(get_metadata_val(niifilelist{cser}.files{1},'DeviceSerialNumber')); % '66021 '
-            tmp = get_metadata_val(niifilelist{cser}.files{1},'AcquisitionMatrix'); % [72 0 0 72]
-            niifilelist{cser}.acqparams.AcquisitionMatrix = tmp{1};
-            niifilelist{cser}.acqparams.InPlanePhaseEncodingDirection = deblank(get_metadata_val(niifilelist{cser}.files{1},'InPlanePhaseEncodingDirection')); % 'COL '
-            niifilelist{cser}.acqparams.FlipAngle = get_metadata_val(niifilelist{cser}.files{1},'FlipAngle'); % 65
-            niifilelist{cser}.acqparams.ImagePositionPatient = get_metadata_val(niifilelist{cser}.files{1},'ImagePositionPatient'); % [3x1 double]
-            niifilelist{cser}.acqparams.ImageOrientationPatient = get_metadata_val(niifilelist{cser}.files{1},'ImageOrientationPatient'); % [6x1 double]
-            niifilelist{cser}.acqparams.ImageComments = deblank(get_metadata_val(niifilelist{cser}.files{1},'ImageComments')); % 'Unaliased MB2/PE2 '
-            tmp = get_metadata_val(niifilelist{cser}.files{1},'CoilString');
-            niifilelist{cser}.acqparams.CoilString = deblank(tmp{1});
-            niifilelist{cser}.acqparams.AccelFactorPE = get_metadata_val(niifilelist{cser}.files{1},'AccelFactorPE');
-            niifilelist{cser}.acqparams.MultiBandFactor = get_metadata_val(niifilelist{cser}.files{1},'MultiBandFactor');
         end
         
         % 5.3 Search for EPIseries-NOISEseries pairs, excludes non-EPI
@@ -161,17 +196,19 @@ if ~isempty(dicomfilelist)
                         end
                         if NOISEok
                             NOISEseries = niifilelist{cNOISEser}.files;
+                            NOISEok = cNOISEser;
                         end
                     end
                 end
                 
-                fprintf(1,'\nEPIseries (%s etc...)\n',EPIseries{1});
+                fprintf(1,'\nINFO: PROCESSING EPI / NOISE SERIES PAIR');
+                fprintf(1,'\n  - EPIseries (%s etc...)\n',EPIseries{1});
                 disp(niifilelist{cEPIser}.acqparams);
                 if ~isempty(NOISEseries)
-                    fprintf(1,'\nNOISEseries (%s etc...)\n',NOISEseries{1});
-                    disp(niifilelist{cNOISEser}.acqparams);
+                    fprintf(1,'\n  - NOISEseries (%s etc...)\n',NOISEseries{1});
+                    disp(niifilelist{NOISEok}.acqparams);
                 else
-                    fprintf(1,'\nEmpty NOISEseries...\n');
+                    fprintf(1,'\n  - Empty NOISEseries...\n');
                 end
                 out = mriq_run_epi_qa_wrapper(EPIseries, NOISEseries, configfile);
             end
