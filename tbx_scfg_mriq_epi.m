@@ -25,6 +25,6 @@ epi.help    = {
     ['Collection of tools for quality assurance and quality control ', ...
     'of EPI data (including fMRI and DWI).']
     }';
-epi.values  = {tbx_scfg_mriq_epi_qa tbx_scfg_mriq_epi_qc};
+epi.values  = {tbx_scfg_mriq_epi_qa tbx_scfg_mriq_epi_qc tbx_scfg_mriq_epi_qareport};
 end
 

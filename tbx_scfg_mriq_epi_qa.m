@@ -169,6 +169,92 @@ epiqa.name    = 'Quality assurance';
 epiqa.val     = {series archive procpar};
 epiqa.help    = {'Tools for EPI quality assurance, including SNR and stability estimates.'};
 epiqa.prog    = @mriq_run_epi_qa;
-% epiqa.vout    = @vout_epi_qa; % not implemented
+epiqa.vout    = @vout_epi_qa; 
 
+end
+
+
+%% VOUT & OTHER SUBFUNCTIONS
+% ========================================================================
+% The RUN function:
+% - out = hmri_run_create(job)
+% is defined separately.
+%_______________________________________________________________________
+
+function dep = vout_epi_qa(job)
+% This depends on job contents, which may not be present when virtual
+% outputs are calculated.
+
+% All output from a given dataset have a common filename formed as follows:
+% <Scanner>_<DateYYYYMMDD>_stud0000_ser0000 (see the asterisk * below). The
+% file name is appended with suffix and the file extension varies according
+% to the output. 
+% For each run of the QA batch, the following output are produced:  
+% - *.json file with the results
+% - *.txt file with same information but a bit easier to read
+% - *.png screenshot of the general results window
+% - *_batch.mat job saved for the current run
+% - *_MEAN.nii mean volume
+% - *_NOISE_DISTRIB.png screenshot of the noise distribution figure
+% - *_SD.nii standard deviation volume
+% - *_SNR_noRF.nii SNR volume (calculated with noise image)
+% - *_tSNR.nii tSNR volume
+
+dep = [];
+% k=1;
+% cdep(1,5*numel(job.subj)) = cfg_dep;
+% for i=1:numel(job.subj)
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('R1_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','R1','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('R2s_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','R2s','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('MT_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','MT','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('A_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','A','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('T1w_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','T1w','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('MTw_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','MTw','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+%     cdep(k)            = cfg_dep;
+%     cdep(k).sname      = sprintf('PDw_subj%d',i);
+%     cdep(k).src_output = substruct('.','subj','()',{i},'.','PDw','()',{':'});
+%     cdep(k).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+%     
+%     k=k+1;
+%     
+% end
+% dep = cdep;
+    
 end
