@@ -35,8 +35,10 @@ if isempty(fg)
 end
 
 DATA.logList = char(job.RESlist);
-% comments and tags
-% PARAMS.comment = job.procpar.comment;
+% Filters and tags
+COILfilter = char(job.RESfilter_coil);
+SCANNERfilter = char(job.RESfilter_scanner);
+REStag = char(job.REStag);
 
 %==========================================================================
 % Initialize structure to collect the data from each time point
@@ -88,7 +90,16 @@ for clog = 1:nlog
     catch
         fprintf(1,'\nWARNING: no field PARAMS.date in %s\n', cfile);
     end
-    try DATA.toPlot.ACQ.scanner{clog} = log.PARAMS.scanner; 
+    try 
+        DATA.toPlot.ACQ.scanner{clog} = log.PARAMS.scanner; 
+        % to filter data according to the scanner of interest, if any
+        %disp(log.PARAMS.scanner);
+        if ~isempty(SCANNERfilter)
+            DATA.toPlot.ACQ.scannerid(clog) = ~isempty(strfind(lower(log.PARAMS.scanner),lower(SCANNERfilter)));
+        else
+            DATA.toPlot.ACQ.scannerid(clog) = true;
+        end
+
     catch
         fprintf(1,'\nWARNING: no field PARAMS.scanner in %s\n', cfile);
     end
@@ -108,7 +119,15 @@ for clog = 1:nlog
     catch
         fprintf(1,'\nWARNING: no field PARAMS.SAR in %s\n', cfile);
     end
-    try DATA.toPlot.ACQ.coils{clog} = log.PARAMS.coils; 
+    try 
+        DATA.toPlot.ACQ.coils{clog} = log.PARAMS.coils;  
+        % to filter data according to the coil of interest, if any
+        %disp(log.PARAMS.coils);
+        if ~isempty(COILfilter)
+            DATA.toPlot.ACQ.coilsid(clog) = ~isempty(strfind(lower(log.PARAMS.coils),lower(COILfilter)));
+        else
+            DATA.toPlot.ACQ.coilsid(clog) = true;
+        end
     catch
         fprintf(1,'\nWARNING: no field PARAMS.coils in %s\n', cfile);
     end
@@ -140,15 +159,15 @@ for clog = 1:nlog
     catch
         fprintf(1,'\nWARNING: no field RES.SNR.snr_CONSTANTINI in %s\n', cfile);
     end
-	try DATA.toPlot.RES.snr_CONSTANTINI_neff(clog) = log.RES.SNR.snr_CONSTANTINI_neff; 
+    try DATA.toPlot.RES.snr_CONSTANTINI_neff(clog) = log.RES.SNR.snr_CONSTANTINI_neff; 
     catch
         fprintf(1,'\nWARNING: no field RES.SNR.snr_CONSTANTINI_neff in %s\n', cfile);
     end
-	try DATA.toPlot.RES.snr_FRIEDMAN(clog) = log.RES.SNR.snr_FRIEDMAN; 
+    try DATA.toPlot.RES.snr_FRIEDMAN(clog) = log.RES.SNR.snr_FRIEDMAN; 
     catch
         fprintf(1,'\nWARNING: no field RES.SNR.snr_FRIEDMAN in %s\n', cfile);
     end
-	try DATA.toPlot.RES.snr_DIETRICH2(clog) = log.RES.SNR.snr_DIETRICH2; 
+    try DATA.toPlot.RES.snr_DIETRICH2(clog) = log.RES.SNR.snr_DIETRICH2; 
     catch
         fprintf(1,'\nWARNING: no field RES.SNR.snr_DIETRICH2 in %s\n', cfile);
     end
@@ -156,15 +175,15 @@ for clog = 1:nlog
     catch
         fprintf(1,'\nWARNING: no field RES.FBIRN.perc_drift in %s\n', cfile);
     end
-	try DATA.toPlot.RES.perc_fluct(clog) = log.RES.FBIRN.perc_fluct; 
+    try DATA.toPlot.RES.perc_fluct(clog) = log.RES.FBIRN.perc_fluct; 
     catch
         fprintf(1,'\nWARNING: no field RES.FBIRN.perc_fluct in %s\n', cfile);
     end
-	try DATA.toPlot.RES.SFNR_voxel(clog) = log.RES.FBIRN.SFNR_voxel; 
+    try DATA.toPlot.RES.SFNR_voxel(clog) = log.RES.FBIRN.SFNR_voxel; 
     catch
         fprintf(1,'\nWARNING: no field RES.FBIRN.SFNR_voxel in %s\n', cfile);
     end
-	try DATA.toPlot.RES.rdc(clog) = log.RES.FBIRN.rdc; 
+    try DATA.toPlot.RES.rdc(clog) = log.RES.FBIRN.rdc; 
     catch
         fprintf(1,'\nWARNING: no field RES.FBIRN.rdc in %s\n', cfile);
     end
@@ -176,7 +195,12 @@ end
 % [todayy, todaym, todayd, nowh, nowm, nows] = fix(clock);
 % fsave = sprintf('summary_report_%0.4d%0.2d%0.2d_%0.2d%0.2d%0.2d', todayy, todaym, todayd, nowh, nowm, nows);
 currenttime = now;
-fsave = sprintf('summary_report_%s', datestr(currenttime,'yyyymmdd_HHMMSS'));
+savetag = REStag;
+if ~isempty(REStag)
+    savetag(strfind(savetag,' ')) = '_';
+    savetag = [savetag '_'];
+end
+fsave = sprintf('summary_report_%s%s', savetag, datestr(currenttime,'yyyymmdd_HHMMSS'));
 spm_jsonwrite(fullfile(PATHS.output, [fsave '.json']), DATA, struct('indent','\t'));
 
 %==========================================================================
@@ -210,29 +234,60 @@ def_fontname = 'Times';
 % single plot all values that are spanning a similar range of values, and
 % label them properly, and create new plot for different dynamic ranges...
 
-% PLOT 1: values in the [0-400 range]: 
-PLOT1 = [DATA.toPlot.ACQ.ref_ampl';
+% PLOT 0: values in the [0-400 range] non-snr-related: 
+PLOT0 = [DATA.toPlot.ACQ.ref_ampl';
          DATA.toPlot.ACQ.rf_freq'*1.0e-06; % MHz
          DATA.toPlot.ACQ.ncha';
-    	 DATA.toPlot.RES.sigma_noRF';
 		 DATA.toPlot.RES.nchaeff_noRF';
+    	 DATA.toPlot.RES.sigma_noRF';
+		 %DATA.toPlot.RES.snr_noRF';
+		 %DATA.toPlot.RES.snr_DIETRICH1';
+		 %DATA.toPlot.RES.snr_DIETRICH1_neff';
+		 %DATA.toPlot.RES.snr_CONSTANTINI';
+		 %DATA.toPlot.RES.snr_CONSTANTINI_neff';
+		 %DATA.toPlot.RES.snr_FRIEDMAN';
+		 %DATA.toPlot.RES.snr_DIETRICH2';
+		 %DATA.toPlot.RES.SFNR_voxel'
+         ];
+         
+PLOT0legend = {'Reference amplitude [V]'
+    'Frequency [MHz]'
+    'Number of Rx channels'
+    'Effective number of Rx channels'
+    'Gaussian Noise SD'
+    %'SNR (noRF)'
+    %'SNR (DIETRICH1)'
+    %'SNR (DIETRICH1 Neff)'
+    %'SNR (CONSTANTINIDES)'
+    %'SNR (CONSTANTINIDES Neff)'
+    %'SNR (FRIEDMAN)'
+    %'SNR (DIETRICH2)'
+    %'tSNR'
+    };
+
+% PLOT 1: values in the [0-400 range], snr-related: 
+PLOT1 = [%DATA.toPlot.ACQ.ref_ampl';
+         %DATA.toPlot.ACQ.rf_freq'*1.0e-06; % MHz
+         %DATA.toPlot.ACQ.ncha';
+    	 %DATA.toPlot.RES.sigma_noRF';
+		 %DATA.toPlot.RES.nchaeff_noRF';
 		 DATA.toPlot.RES.snr_noRF';
 		 DATA.toPlot.RES.snr_DIETRICH1';
-		 DATA.toPlot.RES.snr_DIETRICH1_neff';
+		 %DATA.toPlot.RES.snr_DIETRICH1_neff';
 		 DATA.toPlot.RES.snr_CONSTANTINI';
 		 DATA.toPlot.RES.snr_CONSTANTINI_neff';
 		 DATA.toPlot.RES.snr_FRIEDMAN';
 		 DATA.toPlot.RES.snr_DIETRICH2';
 		 DATA.toPlot.RES.SFNR_voxel'];
          
-PLOT1legend = {'Reference amplitude [V]'
-    'Frequency [MHz]'
-    'Number of Rx channels'
-    'Noise SD'
-    'Effective number of RX channels'
+PLOT1legend = {%'Reference amplitude [V]'
+    %'Frequency [MHz]'
+    %'Number of Rx channels'
+    %'Noise SD'
+    %'Effective number of RX channels'
     'SNR (noRF)'
     'SNR (DIETRICH1)'
-    'SNR (DIETRICH1 Neff)'
+    %'SNR (DIETRICH1 Neff)'
     'SNR (CONSTANTINIDES)'
     'SNR (CONSTANTINIDES Neff)'
     'SNR (FRIEDMAN)'
@@ -245,7 +300,7 @@ PLOT2 = [% DATA.toPlot.RES.perc_drift';
          DATA.toPlot.RES.rdc';
          % DATA.toPlot.ACQ.field_strength';
          % DATA.toPlot.ACQ.SAR'*100
-         ];
+         ]; %#ok<NBRAK>
 
 PLOT2legend = { %'Intensity drift [%]'
     % 'Intensity fluctuation [%]'
@@ -270,27 +325,70 @@ PLOT3legend = {'Intensity drift [%]'
 % Create x-axis data in numerical format:
 xdatenum = datenum(DATA.toPlot.ACQ.date,'yyyymmdd');
 [xdatesorted, sortidx] = sort(xdatenum);
+PLOT0 = PLOT0(:,sortidx);
+PLOT1 = PLOT1(:,sortidx);
+PLOT2 = PLOT2(:,sortidx);
+PLOT3 = PLOT3(:,sortidx);
+filter = find(DATA.toPlot.ACQ.coilsid(sortidx) & DATA.toPlot.ACQ.scannerid(sortidx));
 
 % Plot PLOT0
-subplot(3,1,1);
-plot(xdatesorted, PLOT1(:,sortidx),'marker','.');%,'linestyle','none');
-datetick('x','keepticks','keeplimits');
-legend(PLOT1legend);
+hax0 = subplot(4,1,1);
+plot(xdatesorted(filter), PLOT0(:,filter),'marker','.');%,'linestyle','none');
+datetick('x','dd/mm/yyyy','keepticks','keeplimits');
+hax0.XAxis.FontSize = hax0.XAxis.FontSize*0.8;
+hleg0 = legend(PLOT0legend,'Location','EastOutside');
+set(hleg0,'FontSize', get(hleg0,'FontSize')*0.7);
+% when run line by line, the position of axes and legend are settled when
+% the refposax and refposleg are stored. It seems not to be the case
+% otherwise, wrong value is ....  
+pause(0.5); 
+refposax = get(hax0,'Position');
+%curposax = get(hax,'Position');
+refposleg = get(hleg0,'Position');
+%curposleg = get(hleg,'Position');
+set(hax0,'Position', refposax);
+set(hleg0,'Position', refposleg);
+
+
+% Plot PLOT1
+hax1 = subplot(4,1,2);
+plot(xdatesorted(filter), PLOT1(:,filter),'marker','.');%,'linestyle','none');
+datetick('x','dd/mm/yyyy','keepticks','keeplimits');
+hax1.XAxis.FontSize = hax1.XAxis.FontSize*0.8;
+hleg1 = legend(PLOT1legend,'Location','EastOutside');
+set(hleg1,'FontSize', get(hleg1,'FontSize')*0.7);
+curposax = get(hax1,'Position');
+curposleg = get(hleg1,'Position');
+set(hax1,'Position', [refposax(1) curposax(2) refposax(3) curposax(4)]);
+set(hleg1,'Position', [refposleg(1) curposleg(2) refposleg(3) curposleg(4)]);
 
 % Plot PLOT2
-subplot(3,1,2);
-plot(xdatesorted, PLOT2(:,sortidx),'marker','.');%,'linestyle','none');
-datetick('x','keepticks','keeplimits');
-legend(PLOT2legend);
+hax2 = subplot(4,1,3);
+plot(xdatesorted(filter), PLOT2(:,filter),'marker','.');%,'linestyle','none');
+datetick('x','dd/mm/yyyy','keepticks','keeplimits');
+hax2.XAxis.FontSize = hax2.XAxis.FontSize*0.8;
+hleg2 = legend(PLOT2legend,'Location','EastOutside');
+set(hleg2,'FontSize', get(hleg2,'FontSize')*0.7);
+curposax = get(hax2,'Position');
+curposleg = get(hleg2,'Position');
+set(hax2,'Position', [refposax(1) curposax(2) refposax(3) curposax(4)]);
+set(hleg2,'Position', [refposleg(1) curposleg(2) refposleg(3) curposleg(4)]);
 
 % Plot PLOT3
-subplot(3,1,3);
-plot(xdatesorted, PLOT3(:,sortidx),'marker','.');%,'linestyle','none');
-datetick('x','keepticks','keeplimits');
-legend(PLOT3legend);
+hax3 = subplot(4,1,4);
+plot(xdatesorted(filter), PLOT3(:,filter),'marker','.');%,'linestyle','none');
+datetick('x','dd/mm/yyyy','keepticks','keeplimits');
+hax3.XAxis.FontSize = hax3.XAxis.FontSize*0.8;
+hleg3 = legend(PLOT3legend,'Location','EastOutside');
+set(hleg3,'FontSize', get(hleg3,'FontSize')*0.7);
+curposax = get(hax3,'Position');
+curposleg = get(hleg3,'Position');
+set(hax3,'Position', [refposax(1) curposax(2) refposax(3) curposax(4)]);
+set(hleg3,'Position', [refposleg(1) curposleg(2) refposleg(3) curposleg(4)]);
 
 % general title for the figures
-gentitl = sprintf('Summary report - created %s', datestr(currenttime,'dd/mm/yyyy at HH:MM:SS'));
+if ~isempty(REStag), REStag = [REStag ' - '];end
+gentitl = sprintf('Summary report - %screated %s', REStag, datestr(currenttime,'dd/mm/yyyy at HH:MM:SS'));
 A = annotation(fRES,'textbox',[0.0 0.95 1.0 0.05],'String',gentitl);
 set(A,'LineStyle','none','HorizontalAlignment','center')
 set(A,'FontName',def_fontname,'fontsize',12,'backgroundcolor',[1 1 1]);

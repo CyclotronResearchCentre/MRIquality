@@ -29,6 +29,45 @@ RESlist.num       = [0 Inf];
 RESlist.val       = {''};
 
 %==========================================================================
+% Filters for scanner & coil (mixture usually not useful)
+%==========================================================================
+RESfilter_scanner         = cfg_entry;
+RESfilter_scanner.tag     = 'RESfilter_scanner';
+RESfilter_scanner.name    = 'Scanner';
+RESfilter_scanner.help    = {['Enter a filter to select results from a ' ...
+                              'specific scanner (e.g. Prisma, Allegra, ' ...
+                              'Terra, ...). Leave empty if all scanners ' ...
+                              '(if several) to be considered. ']};
+RESfilter_scanner.strtype = 's';
+RESfilter_scanner.num     = [0 Inf];
+RESfilter_scanner.val     = {''};
+
+RESfilter_coil         = cfg_entry;
+RESfilter_coil.tag     = 'RESfilter_coil';
+RESfilter_coil.name    = 'Coil';
+RESfilter_coil.help    = {['Enter a filter to select results from a ' ...
+                              'specific coil (e.g. HE for 20-channel HE/NE, ' ...
+                              'HC for 64-channel HC/NC coil, etc). ' ...
+                              'Leave empty if all coils (if several) ' ...
+                              'to be considered. Check field ' ...
+                              'log.PARAMS.coils in mriq_run_epi_qareport.m ' ...
+                              'for a clue about the names used for the coils...']};
+RESfilter_coil.strtype = 's';
+RESfilter_coil.num     = [0 Inf];
+RESfilter_coil.val     = {''};
+
+REStag         = cfg_entry;
+REStag.tag     = 'REStag';
+REStag.name    = 'Tag';
+REStag.help    = {['Enter a more explicit tag for the current result, ' ...
+                              'agreeing with the selected coil and scanner ' ...
+                              '(e.g. Prisma 64-channel Head-Neck coil). ' ...
+                              'NOTE: avoid characters that cannot be used within a file name!']};
+REStag.strtype = 's';
+REStag.num     = [0 Inf];
+REStag.val     = {''};
+
+%==========================================================================
 % Parameters of interest to be displayed
 %==========================================================================
 % % PARoI              = cfg_branch;
@@ -80,7 +119,7 @@ RESlist.val       = {''};
 epiqareport         = cfg_exbranch;
 epiqareport.tag     = 'epiqareport';
 epiqareport.name    = 'Quality report';
-epiqareport.val     = {RESlist};
+epiqareport.val     = {RESlist RESfilter_scanner RESfilter_coil REStag};
 epiqareport.help    = {'To display the QA results and their evolution over time.'};
 epiqareport.prog    = @mriq_run_epi_qareport;
 epiqareport.vout    = @vout_epi_qareport; 
