@@ -10,7 +10,7 @@ function out = mriq_run_epi_qareport(job)
 %==========================================================================
 
 % Set paths
-mriq_defaults; % TOBEDELETED!!! Must be handled by the Config module...
+% mriq_defaults; % TOBEDELETED!!! Must be handled by the Config module...
 PATHS.input = fileparts(job.RESlist{1});
 PATHS.output = cell2mat(mriq_get_defaults('path_output'));
 if ~exist(PATHS.output,'dir')
