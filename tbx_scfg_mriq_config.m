@@ -33,7 +33,7 @@ path_arch.name    = 'Archiving directory';
 path_arch.val{1}  = {''};
 path_arch.help    = {['Directory for archiving original data. ', ...
     '[When applicable and] when archiving is enabled, original input data ' ...
-    'are comressed and archived in this directory.']};
+    'are compressed and archived in this directory.']};
 path_arch.filter  = 'dir';
 path_arch.ufilter = '.*';
 path_arch.num     = [0 1];
